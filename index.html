@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftBus - Book Bus Tickets Online</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header & Hero -->
+    <header class="hero">
+        <nav>
+            <div class="logo">SwiftBus</div>
+            <div class="nav-links">
+                <a href="#">Home</a>
+                <a href="#">My Bookings</a>
+                <a href="#">Contact</a>
+                <button class="btn-login">Login</button>
+            </div>
+        </nav>
+        
+        <div class="hero-content">
+            <h1>Book Bus Tickets in Minutes</h1>
+            <p>Travel across Bangladesh with comfort and ease</p>
+            
+            <form class="search-form">
+                <div class="form-group">
+                    <label>From</label>
+                    <input type="text" placeholder="Enter origin city" id="from-city">
+                </div>
+                
+                <div class="form-group">
+                    <label>To</label>
+                    <input type="text" placeholder="Enter destination city" id="to-city">
+                </div>
+                
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="travel-date">
+                </div>
+                
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <section class="bus-results">
+            <h2>Available Buses</h2>
+            <div class="bus-list" id="bus-list">
+                <!-- Buses will be populated by JavaScript -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>SwiftBus</h3>
+                <p>Your trusted partner for comfortable bus travel across Bangladesh.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <a href="#">About Us</a>
+                <a href="#">Contact</a>
+                <a href="#">FAQs</a>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <p>Email: info@swiftbus.com</p>
+                <p>Phone: +880 1234 567890</p>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2024 SwiftBus. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
