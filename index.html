@@ -12,7 +12,7 @@
     <!-- Header & Hero -->
     <header class="hero">
         <nav>
-            <div class="logo" id="logo">SwiftBus</div>
+            <div class="logo">SwiftBus</div>
             <div class="nav-links">
                 <a href="#" id="home-link">Home</a>
                 <a href="#" id="my-bookings-link">My Bookings</a>
@@ -44,7 +44,7 @@
                 
                 <div class="form-group">
                     <label>Date</label>
-                    <input type="date" id="travel-date">
+                    <input type="text" id="travel-date" placeholder="YYYY-MM-DD" autocomplete="off" readonly>
                 </div>
                 
                 <button type="submit" class="search-btn">
@@ -97,6 +97,27 @@
             &copy; 2024 SwiftBus. All rights reserved.
         </div>
     </footer>
+
+    <!-- Calendar Picker -->
+    <div class="calendar-picker" id="calendar-picker">
+        <div class="calendar-header">
+            <button type="button" id="prev-month"><i class="fas fa-chevron-left"></i></button>
+            <div class="calendar-month-year">
+                <span id="month-year"></span>
+            </div>
+            <button type="button" id="next-month"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="calendar-weekdays">
+            <div class="calendar-weekday">Sun</div>
+            <div class="calendar-weekday">Mon</div>
+            <div class="calendar-weekday">Tue</div>
+            <div class="calendar-weekday">Wed</div>
+            <div class="calendar-weekday">Thu</div>
+            <div class="calendar-weekday">Fri</div>
+            <div class="calendar-weekday">Sat</div>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
+    </div>
 
     <script src="script.js"></script>
 </body>

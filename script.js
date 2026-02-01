@@ -25,12 +25,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const busList = document.getElementById('bus-list');
     const searchForm = document.querySelector('.search-form');
-    const logo = document.getElementById('logo');
-    const homeLink = document.getElementById('home-link');
     const myBookingsLink = document.getElementById('my-bookings-link');
     const bookingsSection = document.getElementById('bookings-section');
     const bookingsList = document.getElementById('bookings-list');
     const backToSearch = document.getElementById('back-to-search');
+    const logo = document.querySelector('.logo');
 
     // Autocomplete elements
     const fromInput = document.getElementById('from-city');
@@ -47,6 +46,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display all buses initially
     displayBuses(buses);
+
+    // Logo click to go home
+    if (logo) {
+        logo.style.cursor = 'pointer';
+        logo.addEventListener('click', function() {
+            showSearch();
+            window.scrollTo(0, 0);
+        });
+    }
+
+    // Home link click to go home
+    const homeLink = document.getElementById('home-link');
+    if (homeLink) {
+        homeLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showSearch();
+            window.scrollTo(0, 0);
+        });
+    }
 
     // Search form submission
     searchForm.addEventListener('submit', function(e) {
@@ -201,20 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    if (homeLink) {
-        homeLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showSearch();
-        });
-    }
-
-    if (logo) {
-        logo.style.cursor = 'pointer';
-        logo.addEventListener('click', function() {
-            showSearch();
-        });
-    }
-
     if (backToSearch) {
         backToSearch.addEventListener('click', function() {
             showSearch();
@@ -313,5 +317,122 @@ document.addEventListener('DOMContentLoaded', function() {
     // hook both inputs
     if (fromInput && fromSuggestionsEl) hookAutocomplete(fromInput, fromSuggestionsEl);
     if (toInput && toSuggestionsEl) hookAutocomplete(toInput, toSuggestionsEl);
+
+    // Calendar functionality
+    const travelDateInput = document.getElementById('travel-date');
+    const calendarPicker = document.getElementById('calendar-picker');
+    const calendarDays = document.getElementById('calendar-days');
+    const monthYearDisplay = document.getElementById('month-year');
+    const prevMonthBtn = document.getElementById('prev-month');
+    const nextMonthBtn = document.getElementById('next-month');
+
+    let currentCalendarDate = new Date();
+    let selectedDate = null;
+
+    function renderCalendar() {
+        const year = currentCalendarDate.getFullYear();
+        const month = currentCalendarDate.getMonth();
+        
+        // Update month/year display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        monthYearDisplay.textContent = `${monthNames[month]} ${year}`;
+        
+        // Clear calendar
+        calendarDays.innerHTML = '';
+        
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        // Previous month's days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day other-month';
+            day.textContent = daysInPrevMonth - i;
+            calendarDays.appendChild(day);
+        }
+        
+        // Current month's days
+        const today = new Date();
+        for (let i = 1; i <= daysInMonth; i++) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day';
+            day.textContent = i;
+            
+            const date = new Date(year, month, i);
+            const dateStr = date.toISOString().split('T')[0];
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Mark today
+            if (dateStr === todayStr) {
+                day.classList.add('today');
+            }
+            
+            // Mark selected date
+            if (selectedDate && dateStr === selectedDate) {
+                day.classList.add('selected');
+            }
+            
+            // Only allow future dates
+            if (date >= today) {
+                day.addEventListener('click', function() {
+                    selectedDate = dateStr;
+                    travelDateInput.value = dateStr;
+                    renderCalendar();
+                    calendarPicker.classList.remove('active');
+                });
+            } else {
+                day.style.opacity = '0.4';
+                day.style.pointerEvents = 'none';
+            }
+            
+            calendarDays.appendChild(day);
+        }
+        
+        // Next month's days
+        const totalCells = calendarDays.children.length;
+        const remainingCells = 42 - totalCells;
+        for (let i = 1; i <= remainingCells; i++) {
+            const day = document.createElement('div');
+            day.className = 'calendar-day other-month';
+            day.textContent = i;
+            calendarDays.appendChild(day);
+        }
+    }
+
+    // Calendar event listeners
+    if (travelDateInput) {
+        travelDateInput.addEventListener('click', function() {
+            calendarPicker.classList.add('active');
+            // Position calendar near input
+            const rect = travelDateInput.getBoundingClientRect();
+            calendarPicker.style.top = (rect.bottom + 10) + 'px';
+            calendarPicker.style.left = (rect.left - 50) + 'px';
+            renderCalendar();
+        });
+    }
+
+    if (prevMonthBtn) {
+        prevMonthBtn.addEventListener('click', function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+            renderCalendar();
+        });
+    }
+
+    if (nextMonthBtn) {
+        nextMonthBtn.addEventListener('click', function() {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+            renderCalendar();
+        });
+    }
+
+    // Close calendar when clicking outside
+    document.addEventListener('click', function(e) {
+        if (calendarPicker && !calendarPicker.contains(e.target) && e.target !== travelDateInput) {
+            calendarPicker.classList.remove('active');
+        }
+    });
 
 });
