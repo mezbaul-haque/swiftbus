@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const busList = document.getElementById('bus-list');
     const searchForm = document.querySelector('.search-form');
+    const logo = document.getElementById('logo');
+    const homeLink = document.getElementById('home-link');
     const myBookingsLink = document.getElementById('my-bookings-link');
     const bookingsSection = document.getElementById('bookings-section');
     const bookingsList = document.getElementById('bookings-list');
@@ -196,6 +198,20 @@ document.addEventListener('DOMContentLoaded', function() {
         myBookingsLink.addEventListener('click', function(e) {
             e.preventDefault();
             showBookings();
+        });
+    }
+
+    if (homeLink) {
+        homeLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showSearch();
+        });
+    }
+
+    if (logo) {
+        logo.style.cursor = 'pointer';
+        logo.addEventListener('click', function() {
+            showSearch();
         });
     }
 
