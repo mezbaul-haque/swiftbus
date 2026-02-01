@@ -547,3 +547,52 @@ footer {
     font-size: 0.9rem;
   }
 }
+
+/* Bookings view */
+.hidden { display: none; }
+
+#bookings-section {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+}
+
+.booking-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.booking-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-meta {
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+.booking-actions {
+  min-width: 160px;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancel-booking-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.cancel-booking-btn:hover { background: #dc2626; }

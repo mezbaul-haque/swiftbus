@@ -60,6 +60,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const busList = document.getElementById('bus-list');
     const searchForm = document.querySelector('.search-form');
+    const myBookingsLink = document.getElementById('my-bookings-link');
+    const bookingsSection = document.getElementById('bookings-section');
+    const bookingsList = document.getElementById('bookings-list');
+    const backToSearch = document.getElementById('back-to-search');
+
+    let bookings = JSON.parse(localStorage.getItem('swiftbus_bookings') || '[]');
 
     // Display all buses initially
     displayBuses(buses);
@@ -146,6 +152,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Book bus function
     window.bookBus = function(busId, busName, price) {
-        alert(`Booking initiated for ${busName}\nPrice: ৳${price}\nBus ID: ${busId}\n\nProceeding to checkout...`);
+        const bus = buses.find(b => b.id === busId) || { from: '', to: '' };
+        const travelDate = document.getElementById('travel-date').value || '';
+        const booking = {
+            bookingId: Date.now(),
+            busId: busId,
+            name: busName,
+            from: bus.from,
+            to: bus.to,
+            date: travelDate,
+            price: price,
+            createdAt: new Date().toISOString()
+        };
+        bookings.push(booking);
+        localStorage.setItem('swiftbus_bookings', JSON.stringify(bookings));
+        showBookings();
     };
+
+    function renderBookings() {
+        bookingsList.innerHTML = '';
+        if (!bookings || bookings.length === 0) {
+            bookingsList.innerHTML = '<p class="no-results">You have no bookings yet.</p>';
+            return;
+        }
+
+        bookings.forEach(b => {
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+            card.innerHTML = `
+                <div class="booking-info">
+                    <div style="font-weight:700;">${b.name} — ৳${b.price}</div>
+                    <div class="booking-meta">${b.from} → ${b.to} ${b.date ? '• ' + b.date : ''}</div>
+                </div>
+                <div class="booking-actions">
+                    <button class="cancel-booking-btn" data-id="${b.bookingId}">Cancel</button>
+                </div>
+            `;
+            bookingsList.appendChild(card);
+        });
+
+        bookingsList.querySelectorAll('.cancel-booking-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = Number(this.getAttribute('data-id'));
+                cancelBooking(id);
+            });
+        });
+    }
+
+    function cancelBooking(bookingId) {
+        bookings = bookings.filter(b => b.bookingId !== bookingId);
+        localStorage.setItem('swiftbus_bookings', JSON.stringify(bookings));
+        renderBookings();
+    }
+
+    function showBookings() {
+        document.querySelector('.bus-results').classList.add('hidden');
+        bookingsSection.classList.remove('hidden');
+        renderBookings();
+    }
+
+    function showSearch() {
+        bookingsSection.classList.add('hidden');
+        document.querySelector('.bus-results').classList.remove('hidden');
+    }
+
+    if (myBookingsLink) {
+        myBookingsLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showBookings();
+        });
+    }
+
+    if (backToSearch) {
+        backToSearch.addEventListener('click', function() {
+            showSearch();
+        });
+    }
 });

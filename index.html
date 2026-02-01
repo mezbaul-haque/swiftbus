@@ -15,7 +15,7 @@
             <div class="logo">SwiftBus</div>
             <div class="nav-links">
                 <a href="#">Home</a>
-                <a href="#">My Bookings</a>
+                <a href="#" id="my-bookings-link">My Bookings</a>
                 <a href="#">Contact</a>
                 <button class="btn-login">Login</button>
             </div>
@@ -54,6 +54,16 @@
             <h2>Available Buses</h2>
             <div class="bus-list" id="bus-list">
                 <!-- Buses will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <section id="bookings-section" class="bookings hidden">
+            <h2>My Bookings</h2>
+            <div id="bookings-list">
+                <!-- Bookings populated by JavaScript -->
+            </div>
+            <div style="margin-top:1.25rem;">
+                <button id="back-to-search" class="book-now-btn">Back to Search</button>
             </div>
         </section>
     </main>
