@@ -14,8 +14,8 @@
         <nav>
             <div class="logo">SwiftBus</div>
             <div class="nav-links">
-                <a href="#">Home</a>
-                <a href="#">My Bookings</a>
+                <a href="#" id="home-link">Home</a>
+                <a href="#" id="my-bookings-link">My Bookings</a>
                 <a href="#">Contact</a>
                 <button class="btn-login">Login</button>
             </div>
@@ -28,17 +28,23 @@
             <form class="search-form">
                 <div class="form-group">
                     <label>From</label>
-                    <input type="text" placeholder="Enter origin city" id="from-city">
+                    <div class="autocomplete">
+                        <input type="text" placeholder="Enter origin city" id="from-city" autocomplete="off">
+                        <ul class="suggestions" id="from-suggestions"></ul>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label>To</label>
-                    <input type="text" placeholder="Enter destination city" id="to-city">
+                    <div class="autocomplete">
+                        <input type="text" placeholder="Enter destination city" id="to-city" autocomplete="off">
+                        <ul class="suggestions" id="to-suggestions"></ul>
+                    </div>
                 </div>
                 
                 <div class="form-group">
                     <label>Date</label>
-                    <input type="date" id="travel-date">
+                    <input type="text" id="travel-date" placeholder="YYYY-MM-DD" autocomplete="off" readonly>
                 </div>
                 
                 <button type="submit" class="search-btn">
@@ -54,6 +60,16 @@
             <h2>Available Buses</h2>
             <div class="bus-list" id="bus-list">
                 <!-- Buses will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <section id="bookings-section" class="bookings hidden">
+            <h2>My Bookings</h2>
+            <div id="bookings-list">
+                <!-- Bookings populated by JavaScript -->
+            </div>
+            <div style="margin-top:1.25rem;">
+                <button id="back-to-search" class="book-now-btn">Back to Search</button>
             </div>
         </section>
     </main>
@@ -81,6 +97,27 @@
             &copy; 2024 SwiftBus. All rights reserved.
         </div>
     </footer>
+
+    <!-- Calendar Picker -->
+    <div class="calendar-picker" id="calendar-picker">
+        <div class="calendar-header">
+            <button type="button" id="prev-month"><i class="fas fa-chevron-left"></i></button>
+            <div class="calendar-month-year">
+                <span id="month-year"></span>
+            </div>
+            <button type="button" id="next-month"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="calendar-weekdays">
+            <div class="calendar-weekday">Sun</div>
+            <div class="calendar-weekday">Mon</div>
+            <div class="calendar-weekday">Tue</div>
+            <div class="calendar-weekday">Wed</div>
+            <div class="calendar-weekday">Thu</div>
+            <div class="calendar-weekday">Fri</div>
+            <div class="calendar-weekday">Sat</div>
+        </div>
+        <div class="calendar-days" id="calendar-days"></div>
+    </div>
 
     <script src="script.js"></script>
 </body>
