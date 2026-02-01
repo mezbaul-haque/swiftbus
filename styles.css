@@ -123,6 +123,9 @@ nav {
   margin-left: auto;
   margin-right: auto;
   box-shadow: var(--shadow);
+  position: relative;
+  z-index: 100;
+  overflow: visible;
 }
 
 .form-group {
@@ -151,6 +154,36 @@ nav {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Autocomplete suggestions */
+.autocomplete { position: relative; z-index: 101; }
+.suggestions {
+  position: fixed;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: var(--shadow);
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  z-index: 10000;
+  display: none;
+  min-width: 200px;
+}
+.suggestions:not(:empty) {
+  display: block;
+}
+.suggestions li {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  color: var(--text);
+}
+.suggestions li:hover,
+.suggestions li.active {
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .search-btn {
