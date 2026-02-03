@@ -1,438 +1,601 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // Sample bus data - comprehensive Bangladesh routes
-    const buses = [
-        { id: 1, name: "Green Line", from: "Dhaka", to: "Jessore", departure: "08:00 AM", arrival: "12:30 PM", price: 1200, seats: 45, amenities: ['wifi', 'ac', 'charging'] },
-        { id: 2, name: "Shohagh Paribahan", from: "Dhaka", to: "Jessore", departure: "09:30 AM", arrival: "02:00 PM", price: 1000, seats: 60, amenities: ['ac', 'charging'] },
-        { id: 3, name: "ENA Express", from: "Dhaka", to: "Jessore", departure: "11:00 AM", arrival: "03:30 PM", price: 900, seats: 50, amenities: ['ac'] },
-        { id: 4, name: "Hanif Enterprise", from: "Dhaka", to: "Jessore", departure: "02:00 PM", arrival: "06:30 PM", price: 1100, seats: 55, amenities: ['wifi', 'ac', 'charging', 'water'] },
-        { id: 5, name: "Soudia Transport", from: "Dhaka", to: "Jessore", departure: "04:00 PM", arrival: "08:15 PM", price: 1050, seats: 48, amenities: ['wifi', 'ac'] },
-        { id: 6, name: "BD Express", from: "Dhaka", to: "Sylhet", departure: "07:00 AM", arrival: "12:00 PM", price: 1500, seats: 40, amenities: ['wifi', 'ac', 'charging'] },
-        { id: 7, name: "Hill Transport", from: "Dhaka", to: "Sylhet", departure: "10:00 AM", arrival: "03:00 PM", price: 1400, seats: 50, amenities: ['ac', 'water'] },
-        { id: 8, name: "Transtar", from: "Dhaka", to: "Chittagong", departure: "08:30 AM", arrival: "01:00 PM", price: 1100, seats: 55, amenities: ['wifi', 'ac', 'charging'] },
-        { id: 9, name: "Sohag Express", from: "Dhaka", to: "Chittagong", departure: "11:00 AM", arrival: "04:00 PM", price: 950, seats: 65, amenities: ['ac'] },
-        { id: 10, name: "Ocean Travels", from: "Dhaka", to: "Khulna", departure: "09:00 AM", arrival: "02:00 PM", price: 1300, seats: 45, amenities: ['wifi', 'ac', 'charging', 'water'] },
-        { id: 11, name: "Royal Coach", from: "Dhaka", to: "Rajshahi", departure: "06:00 AM", arrival: "11:00 AM", price: 1250, seats: 50, amenities: ['ac', 'charging'] },
-        { id: 12, name: "Star Travels", from: "Dhaka", to: "Bogra", departure: "07:30 AM", arrival: "11:30 AM", price: 900, seats: 60, amenities: ['ac'] },
-        { id: 13, name: "Metro Transport", from: "Dhaka", to: "Mymensingh", departure: "08:00 AM", arrival: "10:30 AM", price: 700, seats: 55, amenities: ['wifi', 'ac'] },
-        { id: 14, name: "Comfort Bus", from: "Chittagong", to: "Sylhet", departure: "06:00 AM", arrival: "02:00 PM", price: 1600, seats: 40, amenities: ['wifi', 'ac', 'charging'] },
-        { id: 15, name: "Coastal Travels", from: "Chittagong", to: "Jessore", departure: "07:00 AM", arrival: "03:00 PM", price: 1800, seats: 45, amenities: ['ac', 'water'] },
-        { id: 16, name: "Khulna Connect", from: "Khulna", to: "Jessore", departure: "08:00 AM", arrival: "11:00 AM", price: 700, seats: 50, amenities: ['ac'] },
-        { id: 17, name: "North Express", from: "Rajshahi", to: "Bogra", departure: "09:00 AM", arrival: "12:00 PM", price: 600, seats: 55, amenities: ['ac', 'charging'] },
-        { id: 18, name: "Rangpur Link", from: "Dhaka", to: "Rangpur", departure: "06:00 AM", arrival: "10:00 AM", price: 1100, seats: 60, amenities: ['wifi', 'ac'] },
-        { id: 19, name: "Barisal Direct", from: "Dhaka", to: "Barisal", departure: "08:00 AM", arrival: "01:00 PM", price: 1400, seats: 50, amenities: ['ac', 'charging', 'water'] },
-        { id: 20, name: "Comilla Express", from: "Dhaka", to: "Comilla", departure: "07:00 AM", arrival: "11:00 AM", price: 950, seats: 65, amenities: ['ac'] }
-    ];
+const { useEffect, useMemo, useRef, useState } = React;
 
-    const busList = document.getElementById('bus-list');
-    const searchForm = document.querySelector('.search-form');
-    const myBookingsLink = document.getElementById('my-bookings-link');
-    const bookingsSection = document.getElementById('bookings-section');
-    const bookingsList = document.getElementById('bookings-list');
-    const backToSearch = document.getElementById('back-to-search');
-    const logo = document.querySelector('.logo');
+const BUS_DATA = [
+  { id: 1, name: "Green Line", from: "Dhaka", to: "Jessore", departure: "08:00 AM", arrival: "12:30 PM", price: 1200, seats: 45, amenities: ["wifi", "ac", "charging"] },
+  { id: 2, name: "Shohagh Paribahan", from: "Dhaka", to: "Jessore", departure: "09:30 AM", arrival: "02:00 PM", price: 1000, seats: 60, amenities: ["ac", "charging"] },
+  { id: 3, name: "ENA Express", from: "Dhaka", to: "Jessore", departure: "11:00 AM", arrival: "03:30 PM", price: 900, seats: 50, amenities: ["ac"] },
+  { id: 4, name: "Hanif Enterprise", from: "Dhaka", to: "Jessore", departure: "02:00 PM", arrival: "06:30 PM", price: 1100, seats: 55, amenities: ["wifi", "ac", "charging", "water"] },
+  { id: 5, name: "Soudia Transport", from: "Dhaka", to: "Jessore", departure: "04:00 PM", arrival: "08:15 PM", price: 1050, seats: 48, amenities: ["wifi", "ac"] },
+  { id: 6, name: "BD Express", from: "Dhaka", to: "Sylhet", departure: "07:00 AM", arrival: "12:00 PM", price: 1500, seats: 40, amenities: ["wifi", "ac", "charging"] },
+  { id: 7, name: "Hill Transport", from: "Dhaka", to: "Sylhet", departure: "10:00 AM", arrival: "03:00 PM", price: 1400, seats: 50, amenities: ["ac", "water"] },
+  { id: 8, name: "Transtar", from: "Dhaka", to: "Chittagong", departure: "08:30 AM", arrival: "01:00 PM", price: 1100, seats: 55, amenities: ["wifi", "ac", "charging"] },
+  { id: 9, name: "Sohag Express", from: "Dhaka", to: "Chittagong", departure: "11:00 AM", arrival: "04:00 PM", price: 950, seats: 65, amenities: ["ac"] },
+  { id: 10, name: "Ocean Travels", from: "Dhaka", to: "Khulna", departure: "09:00 AM", arrival: "02:00 PM", price: 1300, seats: 45, amenities: ["wifi", "ac", "charging", "water"] },
+  { id: 11, name: "Royal Coach", from: "Dhaka", to: "Rajshahi", departure: "06:00 AM", arrival: "11:00 AM", price: 1250, seats: 50, amenities: ["ac", "charging"] },
+  { id: 12, name: "Star Travels", from: "Dhaka", to: "Bogra", departure: "07:30 AM", arrival: "11:30 AM", price: 900, seats: 60, amenities: ["ac"] },
+  { id: 13, name: "Metro Transport", from: "Dhaka", to: "Mymensingh", departure: "08:00 AM", arrival: "10:30 AM", price: 700, seats: 55, amenities: ["wifi", "ac"] },
+  { id: 14, name: "Comfort Bus", from: "Chittagong", to: "Sylhet", departure: "06:00 AM", arrival: "02:00 PM", price: 1600, seats: 40, amenities: ["wifi", "ac", "charging"] },
+  { id: 15, name: "Coastal Travels", from: "Chittagong", to: "Jessore", departure: "07:00 AM", arrival: "03:00 PM", price: 1800, seats: 45, amenities: ["ac", "water"] },
+  { id: 16, name: "Khulna Connect", from: "Khulna", to: "Jessore", departure: "08:00 AM", arrival: "11:00 AM", price: 700, seats: 50, amenities: ["ac"] },
+  { id: 17, name: "North Express", from: "Rajshahi", to: "Bogra", departure: "09:00 AM", arrival: "12:00 PM", price: 600, seats: 55, amenities: ["ac", "charging"] },
+  { id: 18, name: "Rangpur Link", from: "Dhaka", to: "Rangpur", departure: "06:00 AM", arrival: "10:00 AM", price: 1100, seats: 60, amenities: ["wifi", "ac"] },
+  { id: 19, name: "Barisal Direct", from: "Dhaka", to: "Barisal", departure: "08:00 AM", arrival: "01:00 PM", price: 1400, seats: 50, amenities: ["ac", "charging", "water"] },
+  { id: 20, name: "Comilla Express", from: "Dhaka", to: "Comilla", departure: "07:00 AM", arrival: "11:00 AM", price: 950, seats: 65, amenities: ["ac"] }
+];
 
-    // Autocomplete elements
-    const fromInput = document.getElementById('from-city');
-    const toInput = document.getElementById('to-city');
-    const fromSuggestionsEl = document.getElementById('from-suggestions');
-    const toSuggestionsEl = document.getElementById('to-suggestions');
+const AMENITY_LABELS = {
+  wifi: { icon: "fa-wifi", label: "WiFi" },
+  ac: { icon: "fa-snowflake", label: "AC" },
+  charging: { icon: "fa-plug", label: "Charging" },
+  water: { icon: "fa-tint", label: "Water" }
+};
 
-    let bookings = JSON.parse(localStorage.getItem('swiftbus_bookings') || '[]');
+function formatDateISO(date) {
+  return date.toISOString().split("T")[0];
+}
 
-    // build unique city list from bus data
-    const citySet = new Set();
-    buses.forEach(b => { citySet.add(b.from); citySet.add(b.to); });
-    const uniqueCities = Array.from(citySet).sort();
+function App() {
+  const [fromCity, setFromCity] = useState("");
+  const [toCity, setToCity] = useState("");
+  const [filteredBuses, setFilteredBuses] = useState(BUS_DATA);
+  const [view, setView] = useState("search");
+  const [bookings, setBookings] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
 
-    // Display all buses initially
-    displayBuses(buses);
+  const [fromSuggestions, setFromSuggestions] = useState([]);
+  const [toSuggestions, setToSuggestions] = useState([]);
+  const [fromActiveIdx, setFromActiveIdx] = useState(-1);
+  const [toActiveIdx, setToActiveIdx] = useState(-1);
+  const [fromSugPos, setFromSugPos] = useState({ top: 0, left: 0, width: 0 });
+  const [toSugPos, setToSugPos] = useState({ top: 0, left: 0, width: 0 });
 
-    // Logo click to go home
-    if (logo) {
-        logo.style.cursor = 'pointer';
-        logo.addEventListener('click', function() {
-            showSearch();
-            window.scrollTo(0, 0);
-        });
-    }
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarPos, setCalendarPos] = useState({ top: 0, left: 0 });
 
-    // Home link click to go home
-    const homeLink = document.getElementById('home-link');
-    if (homeLink) {
-        homeLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showSearch();
-            window.scrollTo(0, 0);
-        });
-    }
+  const travelDateRef = useRef(null);
+  const calendarRef = useRef(null);
+  const fromListRef = useRef(null);
+  const toListRef = useRef(null);
+  const fromInputRef = useRef(null);
+  const toInputRef = useRef(null);
 
-    // Search form submission
-    searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const fromCity = document.getElementById('from-city').value.toLowerCase().trim();
-        const toCity = document.getElementById('to-city').value.toLowerCase().trim();
-        
-        if (!fromCity && !toCity) {
-            displayBuses(buses);
-            return;
-        }
-        
-        const filteredBuses = buses.filter(bus => {
-            const matchFrom = !fromCity || bus.from.toLowerCase().includes(fromCity);
-            const matchTo = !toCity || bus.to.toLowerCase().includes(toCity);
-            return matchFrom && matchTo;
-        });
-        
-        displayBuses(filteredBuses);
+  const uniqueCities = useMemo(() => {
+    const set = new Set();
+    BUS_DATA.forEach((b) => {
+      set.add(b.from);
+      set.add(b.to);
     });
+    return Array.from(set).sort();
+  }, []);
 
-    // Function to display buses
-    function displayBuses(busesToDisplay) {
-        busList.innerHTML = '';
-        
-        if (busesToDisplay.length === 0) {
-            busList.innerHTML = '<p class="no-results">No buses found matching your criteria.</p>';
-            return;
+  useEffect(() => {
+    const stored = JSON.parse(localStorage.getItem("swiftbus_bookings") || "[]");
+    setBookings(stored);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("swiftbus_bookings", JSON.stringify(bookings));
+  }, [bookings]);
+
+  useEffect(() => {
+    function handleOutsideClick(e) {
+      const fromList = fromListRef.current;
+      const toList = toListRef.current;
+      const fromInput = document.getElementById("from-city");
+      const toInput = document.getElementById("to-city");
+
+      if (fromList && fromInput && !fromList.contains(e.target) && !fromInput.contains(e.target)) {
+        setFromSuggestions([]);
+      }
+      if (toList && toInput && !toList.contains(e.target) && !toInput.contains(e.target)) {
+        setToSuggestions([]);
+      }
+
+      if (calendarRef.current && travelDateRef.current) {
+        if (!calendarRef.current.contains(e.target) && !travelDateRef.current.contains(e.target)) {
+          setCalendarOpen(false);
         }
-        
-        busesToDisplay.forEach(bus => {
-            const busCard = document.createElement('div');
-            busCard.className = 'bus-card';
-            
-            busCard.innerHTML = `
-                <div class="bus-info">
-                    <div class="bus-header">
-                        <h3 class="bus-name"><i class="fas fa-bus"></i> ${bus.name}</h3>
-                        <span class="seats-available">${bus.seats} seats</span>
-                    </div>
-                    
-                    <div class="timing">
-                        <div class="departure">
-                            <p class="time">${bus.departure}</p>
-                            <p class="city">${bus.from}</p>
-                        </div>
-                        <div class="route-arrow">
-                            <span class="arrow">→</span>
-                            <span class="duration">4.5h</span>
-                        </div>
-                        <div class="arrival">
-                            <p class="time">${bus.arrival}</p>
-                            <p class="city">${bus.to}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="amenities">
-                        ${bus.amenities.includes('wifi') ? '<span class="amenity-badge"><i class="fas fa-wifi"></i> WiFi</span>' : ''}
-                        ${bus.amenities.includes('ac') ? '<span class="amenity-badge"><i class="fas fa-snowflake"></i> AC</span>' : ''}
-                        ${bus.amenities.includes('charging') ? '<span class="amenity-badge"><i class="fas fa-plug"></i> Charging</span>' : ''}
-                        ${bus.amenities.includes('water') ? '<span class="amenity-badge"><i class="fas fa-tint"></i> Water</span>' : ''}
-                    </div>
-                </div>
-                
-                <div class="bus-cta">
-                    <div class="price-section">
-                        <span class="currency">৳</span>
-                        <span class="price">${bus.price}</span>
-                        <span class="per-seat">per seat</span>
-                    </div>
-                    <button class="book-now-btn" onclick="bookBus(${bus.id}, '${bus.name}', ${bus.price})">
-                        <i class="fas fa-shopping-cart"></i> Book Now
-                    </button>
-                </div>
-            `;
-            
-            busList.appendChild(busCard);
-        });
+      }
     }
-    
-    // Book bus function
-    window.bookBus = function(busId, busName, price) {
-        const bus = buses.find(b => b.id === busId) || { from: '', to: '' };
-        const travelDate = document.getElementById('travel-date').value || '';
-        const booking = {
-            bookingId: Date.now(),
-            busId: busId,
-            name: busName,
-            from: bus.from,
-            to: bus.to,
-            date: travelDate,
-            price: price,
-            createdAt: new Date().toISOString()
-        };
-        bookings.push(booking);
-        localStorage.setItem('swiftbus_bookings', JSON.stringify(bookings));
-        showBookings();
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
+
+  function filterCities(query) {
+    if (!query) return [];
+    const q = query.toLowerCase();
+    return uniqueCities.filter((c) => c.toLowerCase().includes(q));
+  }
+
+  function updateSuggestionPosition(inputRef, setPos) {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setPos({
+      left: rect.left,
+      top: rect.bottom + 6,
+      width: rect.width
+    });
+  }
+
+  function handleSearchSubmit(e) {
+    e.preventDefault();
+    const from = fromCity.trim().toLowerCase();
+    const to = toCity.trim().toLowerCase();
+
+    if (!from && !to) {
+      setFilteredBuses(BUS_DATA);
+      return;
+    }
+
+    const filtered = BUS_DATA.filter((bus) => {
+      const matchFrom = !from || bus.from.toLowerCase().includes(from);
+      const matchTo = !to || bus.to.toLowerCase().includes(to);
+      return matchFrom && matchTo;
+    });
+    setFilteredBuses(filtered);
+  }
+
+  function bookBus(busId, busName, price) {
+    const bus = BUS_DATA.find((b) => b.id === busId) || { from: "", to: "" };
+    const booking = {
+      bookingId: Date.now(),
+      busId,
+      name: busName,
+      from: bus.from,
+      to: bus.to,
+      date: selectedDate,
+      price,
+      createdAt: new Date().toISOString()
     };
+    setBookings((prev) => [...prev, booking]);
+    setView("bookings");
+  }
 
-    function renderBookings() {
-        bookingsList.innerHTML = '';
-        if (!bookings || bookings.length === 0) {
-            bookingsList.innerHTML = '<p class="no-results">You have no bookings yet.</p>';
-            return;
-        }
+  function cancelBooking(id) {
+    setBookings((prev) => prev.filter((b) => b.bookingId !== id));
+  }
 
-        bookings.forEach(b => {
-            const card = document.createElement('div');
-            card.className = 'booking-card';
-            card.innerHTML = `
-                <div class="booking-info">
-                    <div style="font-weight:700;">${b.name} — ৳${b.price}</div>
-                    <div class="booking-meta">${b.from} → ${b.to} ${b.date ? '• ' + b.date : ''}</div>
-                </div>
-                <div class="booking-actions">
-                    <button class="cancel-booking-btn" data-id="${b.bookingId}">Cancel</button>
-                </div>
-            `;
-            bookingsList.appendChild(card);
-        });
+  function openCalendar() {
+    if (!travelDateRef.current) return;
+    const rect = travelDateRef.current.getBoundingClientRect();
+    setCalendarPos({ top: rect.bottom + 10, left: rect.left - 50 });
+    setCalendarOpen(true);
+  }
 
-        bookingsList.querySelectorAll('.cancel-booking-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = Number(this.getAttribute('data-id'));
-                cancelBooking(id);
-            });
-        });
+  function renderCalendarDays() {
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+    const today = new Date();
+    const todayStr = formatDateISO(today);
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const cells = [];
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+      cells.push({
+        label: String(daysInPrevMonth - i),
+        type: "other",
+        key: `prev-${i}`
+      });
     }
 
-    function cancelBooking(bookingId) {
-        bookings = bookings.filter(b => b.bookingId !== bookingId);
-        localStorage.setItem('swiftbus_bookings', JSON.stringify(bookings));
-        renderBookings();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(year, month, i);
+      const dateStr = formatDateISO(date);
+      const isPast = date < new Date(todayStr);
+      cells.push({
+        label: String(i),
+        type: "current",
+        key: dateStr,
+        dateStr,
+        isToday: dateStr === todayStr,
+        isSelected: selectedDate === dateStr,
+        isPast
+      });
     }
 
-    function showBookings() {
-        document.querySelector('.bus-results').classList.add('hidden');
-        bookingsSection.classList.remove('hidden');
-        renderBookings();
+    while (cells.length < 42) {
+      const nextIndex = cells.length - (firstDay + daysInMonth) + 1;
+      cells.push({
+        label: String(nextIndex),
+        type: "other",
+        key: `next-${nextIndex}`
+      });
     }
 
-    function showSearch() {
-        bookingsSection.classList.add('hidden');
-        document.querySelector('.bus-results').classList.remove('hidden');
-    }
+    return cells;
+  }
 
-    if (myBookingsLink) {
-        myBookingsLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            showBookings();
-        });
-    }
+  const calendarCells = renderCalendarDays();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    if (backToSearch) {
-        backToSearch.addEventListener('click', function() {
-            showSearch();
-        });
-    }
-
-    /* ---------- Autocomplete logic ---------- */
-    function filterCities(query) {
-        if (!query) return [];
-        const q = query.toLowerCase();
-        return uniqueCities.filter(c => c.toLowerCase().includes(q));
-    }
-
-    function renderSuggestions(listEl, items) {
-        listEl.innerHTML = '';
-        if (!items || items.length === 0) {
-            listEl.style.display = 'none';
-            return;
-        }
-        
-        // Position the suggestions list relative to the input
-        const inputRect = listEl.previousElementSibling.getBoundingClientRect();
-        listEl.style.left = inputRect.left + 'px';
-        listEl.style.top = (inputRect.bottom + 6) + 'px';
-        listEl.style.width = inputRect.width + 'px';
-        
-        items.forEach((city, idx) => {
-            const li = document.createElement('li');
-            li.textContent = city;
-            li.setAttribute('data-index', idx);
-            li.addEventListener('mousedown', function(e) {
-                // use mousedown to prevent blur before click
-                listEl.previousElementSibling.value = city;
-                listEl.innerHTML = '';
-                listEl.style.display = 'none';
-            });
-            listEl.appendChild(li);
-        });
-        listEl.style.display = 'block';
-    }
-
-    function hookAutocomplete(inputEl, listEl) {
-        let selected = -1;
-
-        // Show all cities on focus
-        inputEl.addEventListener('focus', function() {
-            renderSuggestions(listEl, uniqueCities);
-            selected = -1;
-        });
-
-        // Filter as user types
-        inputEl.addEventListener('input', function() {
-            const items = filterCities(this.value);
-            renderSuggestions(listEl, items);
-            selected = -1;
-        });
-
-        inputEl.addEventListener('keydown', function(e) {
-            const items = listEl.querySelectorAll('li');
-            if (e.key === 'ArrowDown') {
+  return (
+    <>
+      <header className="hero">
+        <nav>
+          <div
+            className="logo"
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              setView("search");
+              window.scrollTo(0, 0);
+            }}
+          >
+            <img src="logo.svg" alt="SwiftBus logo" />
+          </div>
+          <div className="nav-links">
+            <a
+              href="#"
+              onClick={(e) => {
                 e.preventDefault();
-                selected = Math.min(selected + 1, items.length - 1);
-                updateActive(items, selected);
-            } else if (e.key === 'ArrowUp') {
+                setView("search");
+                window.scrollTo(0, 0);
+              }}
+            >
+              Home
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
                 e.preventDefault();
-                selected = Math.max(selected - 1, 0);
-                updateActive(items, selected);
-            } else if (e.key === 'Enter') {
-                if (selected >= 0 && items[selected]) {
-                    e.preventDefault();
-                    inputEl.value = items[selected].textContent;
-                    listEl.innerHTML = '';
-                    listEl.style.display = 'none';
-                }
-            } else if (e.key === 'Escape') {
-                listEl.innerHTML = '';
-                listEl.style.display = 'none';
+                setView("bookings");
+              }}
+            >
+              My Bookings
+            </a>
+            <a href="#">Contact</a>
+            <button className="btn-login">Login</button>
+          </div>
+        </nav>
+
+        <div className="hero-content">
+          <h1>Book Bus Tickets in Minutes</h1>
+          <p>Travel across Bangladesh with comfort and ease</p>
+
+          <form className="search-form" onSubmit={handleSearchSubmit}>
+            <div className="form-group">
+              <label>From</label>
+              <div className="autocomplete">
+                <input
+                  type="text"
+                  placeholder="Enter origin city"
+                  id="from-city"
+                  autoComplete="off"
+                  value={fromCity}
+                  ref={fromInputRef}
+                  onFocus={() => {
+                    setFromSuggestions(uniqueCities);
+                    setFromActiveIdx(-1);
+                    updateSuggestionPosition(fromInputRef, setFromSugPos);
+                  }}
+                  onChange={(e) => {
+                    setFromCity(e.target.value);
+                    setFromSuggestions(filterCities(e.target.value));
+                    setFromActiveIdx(-1);
+                    updateSuggestionPosition(fromInputRef, setFromSugPos);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!fromSuggestions.length) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setFromActiveIdx((prev) => Math.min(prev + 1, fromSuggestions.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setFromActiveIdx((prev) => Math.max(prev - 1, 0));
+                    } else if (e.key === "Enter") {
+                      if (fromActiveIdx >= 0) {
+                        e.preventDefault();
+                        setFromCity(fromSuggestions[fromActiveIdx]);
+                        setFromSuggestions([]);
+                      }
+                    } else if (e.key === "Escape") {
+                      setFromSuggestions([]);
+                    }
+                  }}
+                />
+                <ul
+                  className="suggestions"
+                  id="from-suggestions"
+                  ref={fromListRef}
+                  style={{
+                    display: fromSuggestions.length ? "block" : "none",
+                    left: `${fromSugPos.left}px`,
+                    top: `${fromSugPos.top}px`,
+                    width: `${fromSugPos.width}px`
+                  }}
+                >
+                  {fromSuggestions.map((city, idx) => (
+                    <li
+                      key={`${city}-${idx}`}
+                      className={idx === fromActiveIdx ? "active" : ""}
+                      onMouseDown={() => {
+                        setFromCity(city);
+                        setFromSuggestions([]);
+                      }}
+                    >
+                      {city}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>To</label>
+              <div className="autocomplete">
+                <input
+                  type="text"
+                  placeholder="Enter destination city"
+                  id="to-city"
+                  autoComplete="off"
+                  value={toCity}
+                  ref={toInputRef}
+                  onFocus={() => {
+                    setToSuggestions(uniqueCities);
+                    setToActiveIdx(-1);
+                    updateSuggestionPosition(toInputRef, setToSugPos);
+                  }}
+                  onChange={(e) => {
+                    setToCity(e.target.value);
+                    setToSuggestions(filterCities(e.target.value));
+                    setToActiveIdx(-1);
+                    updateSuggestionPosition(toInputRef, setToSugPos);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!toSuggestions.length) return;
+                    if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setToActiveIdx((prev) => Math.min(prev + 1, toSuggestions.length - 1));
+                    } else if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setToActiveIdx((prev) => Math.max(prev - 1, 0));
+                    } else if (e.key === "Enter") {
+                      if (toActiveIdx >= 0) {
+                        e.preventDefault();
+                        setToCity(toSuggestions[toActiveIdx]);
+                        setToSuggestions([]);
+                      }
+                    } else if (e.key === "Escape") {
+                      setToSuggestions([]);
+                    }
+                  }}
+                />
+                <ul
+                  className="suggestions"
+                  id="to-suggestions"
+                  ref={toListRef}
+                  style={{
+                    display: toSuggestions.length ? "block" : "none",
+                    left: `${toSugPos.left}px`,
+                    top: `${toSugPos.top}px`,
+                    width: `${toSugPos.width}px`
+                  }}
+                >
+                  {toSuggestions.map((city, idx) => (
+                    <li
+                      key={`${city}-${idx}`}
+                      className={idx === toActiveIdx ? "active" : ""}
+                      onMouseDown={() => {
+                        setToCity(city);
+                        setToSuggestions([]);
+                      }}
+                    >
+                      {city}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Date</label>
+              <input
+                type="text"
+                id="travel-date"
+                placeholder="YYYY-MM-DD"
+                autoComplete="off"
+                readOnly
+                value={selectedDate}
+                ref={travelDateRef}
+                onClick={openCalendar}
+              />
+            </div>
+
+            <button type="submit" className="search-btn">
+              <i className="fas fa-search"></i> Search
+            </button>
+          </form>
+        </div>
+      </header>
+
+      <main className="container">
+        <section className={`bus-results ${view === "bookings" ? "hidden" : ""}`}>
+          <h2>Available Buses</h2>
+          <div className="bus-list">
+            {filteredBuses.length === 0 ? (
+              <p className="no-results">No buses found matching your criteria.</p>
+            ) : (
+              filteredBuses.map((bus) => (
+                <div className="bus-card" key={bus.id}>
+                  <div className="bus-info">
+                    <div className="bus-header">
+                      <h3 className="bus-name">
+                        <i className="fas fa-bus"></i> {bus.name}
+                      </h3>
+                      <span className="seats-available">{bus.seats} seats</span>
+                    </div>
+
+                    <div className="timing">
+                      <div className="departure">
+                        <p className="time">{bus.departure}</p>
+                        <p className="city">{bus.from}</p>
+                      </div>
+                      <div className="route-arrow">
+                        <span className="arrow">→</span>
+                        <span className="duration">4.5h</span>
+                      </div>
+                      <div className="arrival">
+                        <p className="time">{bus.arrival}</p>
+                        <p className="city">{bus.to}</p>
+                      </div>
+                    </div>
+
+                    <div className="amenities">
+                      {bus.amenities.map((amenity) => {
+                        const data = AMENITY_LABELS[amenity];
+                        if (!data) return null;
+                        return (
+                          <span className="amenity-badge" key={amenity}>
+                            <i className={`fas ${data.icon}`}></i> {data.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bus-cta">
+                    <div className="price-section">
+                      <span className="currency">৳</span>
+                      <span className="price">{bus.price}</span>
+                      <span className="per-seat">per seat</span>
+                    </div>
+                    <button
+                      className="book-now-btn"
+                      onClick={() => bookBus(bus.id, bus.name, bus.price)}
+                    >
+                      <i className="fas fa-shopping-cart"></i> Book Now
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section id="bookings-section" className={`bookings ${view === "bookings" ? "" : "hidden"}`}>
+          <h2>My Bookings</h2>
+          <div id="bookings-list">
+            {bookings.length === 0 ? (
+              <p className="no-results">You have no bookings yet.</p>
+            ) : (
+              bookings.map((b) => (
+                <div className="booking-card" key={b.bookingId}>
+                  <div className="booking-info">
+                    <div style={{ fontWeight: 700 }}>{b.name} — ৳{b.price}</div>
+                    <div className="booking-meta">
+                      {b.from} → {b.to} {b.date ? `• ${b.date}` : ""}
+                    </div>
+                  </div>
+                  <div className="booking-actions">
+                    <button className="cancel-booking-btn" onClick={() => cancelBooking(b.bookingId)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div style={{ marginTop: "1.25rem" }}>
+            <button className="book-now-btn" onClick={() => setView("search")}>
+              Back to Search
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <div className="footer-content">
+          <div className="footer-section">
+            <h3>SwiftBus</h3>
+            <p>Your trusted partner for comfortable bus travel across Bangladesh.</p>
+          </div>
+          <div className="footer-section">
+            <h3>Quick Links</h3>
+            <a href="#">About Us</a>
+            <a href="#">Contact</a>
+            <a href="#">FAQs</a>
+          </div>
+          <div className="footer-section">
+            <h3>Contact Us</h3>
+            <p>Email: info@swiftbus.com</p>
+            <p>Phone: +880 1234 567890</p>
+          </div>
+        </div>
+        <div className="copyright">&copy; 2024 SwiftBus. All rights reserved.</div>
+      </footer>
+
+      <div
+        className={`calendar-picker ${calendarOpen ? "active" : ""}`}
+        id="calendar-picker"
+        ref={calendarRef}
+        style={{ top: `${calendarPos.top}px`, left: `${calendarPos.left}px` }}
+      >
+        <div className="calendar-header">
+          <button
+            type="button"
+            onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))}
+          >
+            <i className="fas fa-chevron-left"></i>
+          </button>
+          <div className="calendar-month-year">
+            <span id="month-year">{monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))}
+          >
+            <i className="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        <div className="calendar-weekdays">
+          <div className="calendar-weekday">Sun</div>
+          <div className="calendar-weekday">Mon</div>
+          <div className="calendar-weekday">Tue</div>
+          <div className="calendar-weekday">Wed</div>
+          <div className="calendar-weekday">Thu</div>
+          <div className="calendar-weekday">Fri</div>
+          <div className="calendar-weekday">Sat</div>
+        </div>
+        <div className="calendar-days" id="calendar-days">
+          {calendarCells.map((cell) => {
+            if (cell.type === "other") {
+              return (
+                <div className="calendar-day other-month" key={cell.key}>
+                  {cell.label}
+                </div>
+              );
             }
-        });
 
-        // hide when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!inputEl.contains(e.target) && !listEl.contains(e.target)) {
-                listEl.innerHTML = '';
-                listEl.style.display = 'none';
-            }
-        });
-    }
+            const classes = ["calendar-day"];
+            if (cell.isToday) classes.push("today");
+            if (cell.isSelected) classes.push("selected");
+            if (cell.isPast) classes.push("disabled");
 
-    function updateActive(items, selected) {
-        items.forEach((it, i) => {
-            if (i === selected) it.classList.add('active'); else it.classList.remove('active');
-        });
-    }
+            return (
+              <div
+                key={cell.key}
+                className={classes.join(" ")}
+                style={cell.isPast ? { opacity: 0.4, pointerEvents: "none" } : null}
+                onClick={() => {
+                  if (cell.isPast) return;
+                  setSelectedDate(cell.dateStr);
+                  setCalendarOpen(false);
+                }}
+              >
+                {cell.label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
 
-    // hook both inputs
-    if (fromInput && fromSuggestionsEl) hookAutocomplete(fromInput, fromSuggestionsEl);
-    if (toInput && toSuggestionsEl) hookAutocomplete(toInput, toSuggestionsEl);
-
-    // Calendar functionality
-    const travelDateInput = document.getElementById('travel-date');
-    const calendarPicker = document.getElementById('calendar-picker');
-    const calendarDays = document.getElementById('calendar-days');
-    const monthYearDisplay = document.getElementById('month-year');
-    const prevMonthBtn = document.getElementById('prev-month');
-    const nextMonthBtn = document.getElementById('next-month');
-
-    let currentCalendarDate = new Date();
-    let selectedDate = null;
-
-    function renderCalendar() {
-        const year = currentCalendarDate.getFullYear();
-        const month = currentCalendarDate.getMonth();
-        
-        // Update month/year display
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                           'July', 'August', 'September', 'October', 'November', 'December'];
-        monthYearDisplay.textContent = `${monthNames[month]} ${year}`;
-        
-        // Clear calendar
-        calendarDays.innerHTML = '';
-        
-        // Get first day of month and number of days
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const daysInPrevMonth = new Date(year, month, 0).getDate();
-        
-        // Previous month's days
-        for (let i = firstDay - 1; i >= 0; i--) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day other-month';
-            day.textContent = daysInPrevMonth - i;
-            calendarDays.appendChild(day);
-        }
-        
-        // Current month's days
-        const today = new Date();
-        for (let i = 1; i <= daysInMonth; i++) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day';
-            day.textContent = i;
-            
-            const date = new Date(year, month, i);
-            const dateStr = date.toISOString().split('T')[0];
-            const todayStr = today.toISOString().split('T')[0];
-            
-            // Mark today
-            if (dateStr === todayStr) {
-                day.classList.add('today');
-            }
-            
-            // Mark selected date
-            if (selectedDate && dateStr === selectedDate) {
-                day.classList.add('selected');
-            }
-            
-            // Only allow future dates
-            if (date >= today) {
-                day.addEventListener('click', function() {
-                    selectedDate = dateStr;
-                    travelDateInput.value = dateStr;
-                    renderCalendar();
-                    calendarPicker.classList.remove('active');
-                });
-            } else {
-                day.style.opacity = '0.4';
-                day.style.pointerEvents = 'none';
-            }
-            
-            calendarDays.appendChild(day);
-        }
-        
-        // Next month's days
-        const totalCells = calendarDays.children.length;
-        const remainingCells = 42 - totalCells;
-        for (let i = 1; i <= remainingCells; i++) {
-            const day = document.createElement('div');
-            day.className = 'calendar-day other-month';
-            day.textContent = i;
-            calendarDays.appendChild(day);
-        }
-    }
-
-    // Calendar event listeners
-    if (travelDateInput) {
-        travelDateInput.addEventListener('click', function() {
-            calendarPicker.classList.add('active');
-            // Position calendar near input
-            const rect = travelDateInput.getBoundingClientRect();
-            calendarPicker.style.top = (rect.bottom + 10) + 'px';
-            calendarPicker.style.left = (rect.left - 50) + 'px';
-            renderCalendar();
-        });
-    }
-
-    if (prevMonthBtn) {
-        prevMonthBtn.addEventListener('click', function() {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
-            renderCalendar();
-        });
-    }
-
-    if (nextMonthBtn) {
-        nextMonthBtn.addEventListener('click', function() {
-            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
-            renderCalendar();
-        });
-    }
-
-    // Close calendar when clicking outside
-    document.addEventListener('click', function(e) {
-        if (calendarPicker && !calendarPicker.contains(e.target) && e.target !== travelDateInput) {
-            calendarPicker.classList.remove('active');
-        }
-    });
-
-});
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
