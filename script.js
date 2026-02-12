@@ -30,8 +30,19 @@ const AMENITY_LABELS = {
   water: { icon: "fa-tint", label: "Water" }
 };
 
+const MAX_SEAT_SELECTION = 4;
+
 function formatDateISO(date) {
   return date.toISOString().split("T")[0];
+}
+
+function getSeatLabels(totalSeats) {
+  const cols = ["A", "B", "C", "D"];
+  return Array.from({ length: totalSeats }, (_, idx) => {
+    const row = Math.floor(idx / cols.length) + 1;
+    const col = cols[idx % cols.length];
+    return `${row}${col}`;
+  });
 }
 
 function App() {
@@ -41,6 +52,9 @@ function App() {
   const [view, setView] = useState("search");
   const [bookings, setBookings] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
+  const [seatPlanBus, setSeatPlanBus] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [seatError, setSeatError] = useState("");
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
@@ -137,19 +151,74 @@ function App() {
     setFilteredBuses(filtered);
   }
 
-  function bookBus(busId, busName, price) {
-    const bus = BUS_DATA.find((b) => b.id === busId) || { from: "", to: "" };
+  function getBookedSeatSet(busId, date) {
+    const set = new Set();
+    bookings.forEach((booking) => {
+      if (booking.busId !== busId) return;
+      if ((booking.date || "") !== (date || "")) return;
+      const seats = Array.isArray(booking.seats) ? booking.seats : [];
+      seats.forEach((seat) => set.add(seat));
+    });
+    return set;
+  }
+
+  function getAvailableSeatCount(busId, totalSeats) {
+    if (!selectedDate) return totalSeats;
+    return totalSeats - getBookedSeatSet(busId, selectedDate).size;
+  }
+
+  function openSeatPlan(bus) {
+    if (!selectedDate) {
+      alert("Please select a travel date before choosing seats.");
+      return;
+    }
+    setSeatPlanBus(bus);
+    setSelectedSeats([]);
+    setSeatError("");
+  }
+
+  function toggleSeatSelection(seatNo, bookedSet) {
+    if (bookedSet.has(seatNo)) return;
+    setSeatError("");
+    setSelectedSeats((prev) => {
+      if (prev.includes(seatNo)) {
+        return prev.filter((seat) => seat !== seatNo);
+      }
+      if (prev.length >= MAX_SEAT_SELECTION) {
+        setSeatError(`You can select up to ${MAX_SEAT_SELECTION} seats at once.`);
+        return prev;
+      }
+      return [...prev, seatNo];
+    });
+  }
+
+  function confirmSeatBooking() {
+    if (!seatPlanBus || !selectedSeats.length) return;
+    const latestBooked = getBookedSeatSet(seatPlanBus.id, selectedDate);
+    const alreadyTaken = selectedSeats.filter((seat) => latestBooked.has(seat));
+    if (alreadyTaken.length) {
+      setSeatError(`Seat already booked: ${alreadyTaken.join(", ")}. Please choose different seats.`);
+      setSelectedSeats((prev) => prev.filter((seat) => !alreadyTaken.includes(seat)));
+      return;
+    }
+    const bus = BUS_DATA.find((b) => b.id === seatPlanBus.id) || { from: "", to: "" };
     const booking = {
       bookingId: Date.now(),
-      busId,
-      name: busName,
+      busId: bus.id,
+      name: bus.name,
       from: bus.from,
       to: bus.to,
       date: selectedDate,
-      price,
+      seats: selectedSeats,
+      seatCount: selectedSeats.length,
+      pricePerSeat: bus.price,
+      price: bus.price * selectedSeats.length,
       createdAt: new Date().toISOString()
     };
     setBookings((prev) => [...prev, booking]);
+    setSeatPlanBus(null);
+    setSelectedSeats([]);
+    setSeatError("");
     setView("bookings");
   }
 
@@ -213,6 +282,21 @@ function App() {
 
   const calendarCells = renderCalendarDays();
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const seatRows = useMemo(() => {
+    if (!seatPlanBus) return [];
+    const allSeats = getSeatLabels(seatPlanBus.seats);
+    const rows = [];
+    for (let i = 0; i < allSeats.length; i += 4) {
+      const row = allSeats.slice(i, i + 4);
+      while (row.length < 4) row.push(null);
+      rows.push(row);
+    }
+    return rows;
+  }, [seatPlanBus]);
+  const bookedSeatsForPlan = useMemo(() => {
+    if (!seatPlanBus) return new Set();
+    return getBookedSeatSet(seatPlanBus.id, selectedDate);
+  }, [seatPlanBus, selectedDate, bookings]);
 
   return (
     <>
@@ -421,57 +505,64 @@ function App() {
               <p className="no-results">No buses found matching your criteria.</p>
             ) : (
               filteredBuses.map((bus) => (
-                <div className="bus-card" key={bus.id}>
-                  <div className="bus-info">
-                    <div className="bus-header">
-                      <h3 className="bus-name">
-                        <i className="fas fa-bus"></i> {bus.name}
-                      </h3>
-                      <span className="seats-available">{bus.seats} seats</span>
-                    </div>
+                (() => {
+                  const availableSeats = getAvailableSeatCount(bus.id, bus.seats);
+                  const soldOut = selectedDate && availableSeats <= 0;
+                  return (
+                    <div className="bus-card" key={bus.id}>
+                      <div className="bus-info">
+                        <div className="bus-header">
+                          <h3 className="bus-name">
+                            <i className="fas fa-bus"></i> {bus.name}
+                          </h3>
+                          <span className="seats-available">{availableSeats} seats</span>
+                        </div>
 
-                    <div className="timing">
-                      <div className="departure">
-                        <p className="time">{bus.departure}</p>
-                        <p className="city">{bus.from}</p>
-                      </div>
-                      <div className="route-arrow">
-                        <span className="arrow">→</span>
-                        <span className="duration">4.5h</span>
-                      </div>
-                      <div className="arrival">
-                        <p className="time">{bus.arrival}</p>
-                        <p className="city">{bus.to}</p>
-                      </div>
-                    </div>
+                        <div className="timing">
+                          <div className="departure">
+                            <p className="time">{bus.departure}</p>
+                            <p className="city">{bus.from}</p>
+                          </div>
+                          <div className="route-arrow">
+                            <span className="arrow">→</span>
+                            <span className="duration">4.5h</span>
+                          </div>
+                          <div className="arrival">
+                            <p className="time">{bus.arrival}</p>
+                            <p className="city">{bus.to}</p>
+                          </div>
+                        </div>
 
-                    <div className="amenities">
-                      {bus.amenities.map((amenity) => {
-                        const data = AMENITY_LABELS[amenity];
-                        if (!data) return null;
-                        return (
-                          <span className="amenity-badge" key={amenity}>
-                            <i className={`fas ${data.icon}`}></i> {data.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        <div className="amenities">
+                          {bus.amenities.map((amenity) => {
+                            const data = AMENITY_LABELS[amenity];
+                            if (!data) return null;
+                            return (
+                              <span className="amenity-badge" key={amenity}>
+                                <i className={`fas ${data.icon}`}></i> {data.label}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                  <div className="bus-cta">
-                    <div className="price-section">
-                      <span className="currency">৳</span>
-                      <span className="price">{bus.price}</span>
-                      <span className="per-seat">per seat</span>
+                      <div className="bus-cta">
+                        <div className="price-section">
+                          <span className="currency">৳</span>
+                          <span className="price">{bus.price}</span>
+                          <span className="per-seat">per seat</span>
+                        </div>
+                        <button
+                          className="book-now-btn"
+                          disabled={soldOut}
+                          onClick={() => openSeatPlan(bus)}
+                        >
+                          <i className={`fas ${soldOut ? "fa-ban" : "fa-chair"}`}></i> {soldOut ? "Sold Out" : "Choose Seat"}
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      className="book-now-btn"
-                      onClick={() => bookBus(bus.id, bus.name, bus.price)}
-                    >
-                      <i className="fas fa-shopping-cart"></i> Book Now
-                    </button>
-                  </div>
-                </div>
+                  );
+                })()
               ))
             )}
           </div>
@@ -490,6 +581,9 @@ function App() {
                     <div className="booking-meta">
                       {b.from} → {b.to} {b.date ? `• ${b.date}` : ""}
                     </div>
+                    {!!b.seats?.length && (
+                      <div className="booking-meta">Seats: {b.seats.join(", ")}</div>
+                    )}
                   </div>
                   <div className="booking-actions">
                     <button className="cancel-booking-btn" onClick={() => cancelBooking(b.bookingId)}>
@@ -593,6 +687,90 @@ function App() {
           })}
         </div>
       </div>
+
+      {seatPlanBus && (
+        <div className="seat-plan-overlay" onClick={() => setSeatPlanBus(null)}>
+          <div className="seat-plan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="seat-plan-header">
+              <div>
+                <h3>{seatPlanBus.name}</h3>
+                <p>
+                  {seatPlanBus.from} → {seatPlanBus.to} {selectedDate ? `• ${selectedDate}` : ""}
+                </p>
+              </div>
+              <button type="button" className="seat-plan-close" onClick={() => setSeatPlanBus(null)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="seat-legend">
+              <span><i className="fas fa-square-full seat-legend-icon available"></i> Available</span>
+              <span><i className="fas fa-square-full seat-legend-icon selected"></i> Selected</span>
+              <span><i className="fas fa-square-full seat-legend-icon booked"></i> Booked</span>
+            </div>
+
+            <div className="driver-badge">Driver</div>
+            <div className="seat-grid">
+              {seatRows.map((row, rowIdx) => (
+                <div className="seat-row" key={`row-${rowIdx}`}>
+                  {row[0] ? (
+                    <button
+                      type="button"
+                      className={`seat-btn ${bookedSeatsForPlan.has(row[0]) ? "booked" : ""} ${selectedSeats.includes(row[0]) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(row[0])}
+                      onClick={() => toggleSeatSelection(row[0], bookedSeatsForPlan)}
+                    >
+                      {row[0]}
+                    </button>
+                  ) : <div className="seat-empty"></div>}
+                  {row[1] ? (
+                    <button
+                      type="button"
+                      className={`seat-btn ${bookedSeatsForPlan.has(row[1]) ? "booked" : ""} ${selectedSeats.includes(row[1]) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(row[1])}
+                      onClick={() => toggleSeatSelection(row[1], bookedSeatsForPlan)}
+                    >
+                      {row[1]}
+                    </button>
+                  ) : <div className="seat-empty"></div>}
+                  <div className="seat-aisle"></div>
+                  {row[2] ? (
+                    <button
+                      type="button"
+                      className={`seat-btn ${bookedSeatsForPlan.has(row[2]) ? "booked" : ""} ${selectedSeats.includes(row[2]) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(row[2])}
+                      onClick={() => toggleSeatSelection(row[2], bookedSeatsForPlan)}
+                    >
+                      {row[2]}
+                    </button>
+                  ) : <div className="seat-empty"></div>}
+                  {row[3] ? (
+                    <button
+                      type="button"
+                      className={`seat-btn ${bookedSeatsForPlan.has(row[3]) ? "booked" : ""} ${selectedSeats.includes(row[3]) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(row[3])}
+                      onClick={() => toggleSeatSelection(row[3], bookedSeatsForPlan)}
+                    >
+                      {row[3]}
+                    </button>
+                  ) : <div className="seat-empty"></div>}
+                </div>
+              ))}
+            </div>
+
+            {seatError && <p className="seat-error">{seatError}</p>}
+
+            <div className="seat-plan-footer">
+              <div className="seat-summary">
+                {selectedSeats.length ? `Selected: ${selectedSeats.join(", ")}` : "Select seats to continue"}
+              </div>
+              <button type="button" className="book-now-btn" disabled={!selectedSeats.length} onClick={confirmSeatBooking}>
+                Confirm Booking (৳{seatPlanBus.price * selectedSeats.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
