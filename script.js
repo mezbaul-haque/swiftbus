@@ -1,26 +1,26 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const BUS_DATA = [
-  { id: 1, name: "Green Line", from: "Dhaka", to: "Jessore", departure: "08:00 AM", arrival: "12:30 PM", price: 1200, seats: 45, amenities: ["wifi", "ac", "charging"] },
-  { id: 2, name: "Shohagh Paribahan", from: "Dhaka", to: "Jessore", departure: "09:30 AM", arrival: "02:00 PM", price: 1000, seats: 60, amenities: ["ac", "charging"] },
-  { id: 3, name: "ENA Express", from: "Dhaka", to: "Jessore", departure: "11:00 AM", arrival: "03:30 PM", price: 900, seats: 50, amenities: ["ac"] },
-  { id: 4, name: "Hanif Enterprise", from: "Dhaka", to: "Jessore", departure: "02:00 PM", arrival: "06:30 PM", price: 1100, seats: 55, amenities: ["wifi", "ac", "charging", "water"] },
-  { id: 5, name: "Soudia Transport", from: "Dhaka", to: "Jessore", departure: "04:00 PM", arrival: "08:15 PM", price: 1050, seats: 48, amenities: ["wifi", "ac"] },
-  { id: 6, name: "BD Express", from: "Dhaka", to: "Sylhet", departure: "07:00 AM", arrival: "12:00 PM", price: 1500, seats: 40, amenities: ["wifi", "ac", "charging"] },
-  { id: 7, name: "Hill Transport", from: "Dhaka", to: "Sylhet", departure: "10:00 AM", arrival: "03:00 PM", price: 1400, seats: 50, amenities: ["ac", "water"] },
-  { id: 8, name: "Transtar", from: "Dhaka", to: "Chittagong", departure: "08:30 AM", arrival: "01:00 PM", price: 1100, seats: 55, amenities: ["wifi", "ac", "charging"] },
-  { id: 9, name: "Sohag Express", from: "Dhaka", to: "Chittagong", departure: "11:00 AM", arrival: "04:00 PM", price: 950, seats: 65, amenities: ["ac"] },
-  { id: 10, name: "Ocean Travels", from: "Dhaka", to: "Khulna", departure: "09:00 AM", arrival: "02:00 PM", price: 1300, seats: 45, amenities: ["wifi", "ac", "charging", "water"] },
-  { id: 11, name: "Royal Coach", from: "Dhaka", to: "Rajshahi", departure: "06:00 AM", arrival: "11:00 AM", price: 1250, seats: 50, amenities: ["ac", "charging"] },
-  { id: 12, name: "Star Travels", from: "Dhaka", to: "Bogra", departure: "07:30 AM", arrival: "11:30 AM", price: 900, seats: 60, amenities: ["ac"] },
-  { id: 13, name: "Metro Transport", from: "Dhaka", to: "Mymensingh", departure: "08:00 AM", arrival: "10:30 AM", price: 700, seats: 55, amenities: ["wifi", "ac"] },
-  { id: 14, name: "Comfort Bus", from: "Chittagong", to: "Sylhet", departure: "06:00 AM", arrival: "02:00 PM", price: 1600, seats: 40, amenities: ["wifi", "ac", "charging"] },
-  { id: 15, name: "Coastal Travels", from: "Chittagong", to: "Jessore", departure: "07:00 AM", arrival: "03:00 PM", price: 1800, seats: 45, amenities: ["ac", "water"] },
-  { id: 16, name: "Khulna Connect", from: "Khulna", to: "Jessore", departure: "08:00 AM", arrival: "11:00 AM", price: 700, seats: 50, amenities: ["ac"] },
-  { id: 17, name: "North Express", from: "Rajshahi", to: "Bogra", departure: "09:00 AM", arrival: "12:00 PM", price: 600, seats: 55, amenities: ["ac", "charging"] },
-  { id: 18, name: "Rangpur Link", from: "Dhaka", to: "Rangpur", departure: "06:00 AM", arrival: "10:00 AM", price: 1100, seats: 60, amenities: ["wifi", "ac"] },
-  { id: 19, name: "Barisal Direct", from: "Dhaka", to: "Barisal", departure: "08:00 AM", arrival: "01:00 PM", price: 1400, seats: 50, amenities: ["ac", "charging", "water"] },
-  { id: 20, name: "Comilla Express", from: "Dhaka", to: "Comilla", departure: "07:00 AM", arrival: "11:00 AM", price: 950, seats: 65, amenities: ["ac"] }
+  { id: 1, name: "Green Line", from: "Dhaka", to: "Jessore", departure: "08:00 AM", arrival: "12:30 PM", price: 1200, seats: 45, seatLayout: "2x2", amenities: ["wifi", "ac", "charging"] },
+  { id: 2, name: "Shohagh Paribahan", from: "Dhaka", to: "Jessore", departure: "09:30 AM", arrival: "02:00 PM", price: 1000, seats: 60, seatLayout: "2x2", amenities: ["ac", "charging"] },
+  { id: 3, name: "ENA Express", from: "Dhaka", to: "Jessore", departure: "11:00 AM", arrival: "03:30 PM", price: 900, seats: 50, seatLayout: "2x2", amenities: ["ac"] },
+  { id: 4, name: "Hanif Enterprise", from: "Dhaka", to: "Jessore", departure: "02:00 PM", arrival: "06:30 PM", price: 1100, seats: 55, seatLayout: "2x2", amenities: ["wifi", "ac", "charging", "water"] },
+  { id: 5, name: "Soudia Transport", from: "Dhaka", to: "Jessore", departure: "04:00 PM", arrival: "08:15 PM", price: 1050, seats: 48, seatLayout: "2x2", amenities: ["wifi", "ac"] },
+  { id: 6, name: "BD Express", from: "Dhaka", to: "Sylhet", departure: "07:00 AM", arrival: "12:00 PM", price: 1500, seats: 40, seatLayout: "1x2", amenities: ["wifi", "ac", "charging"] },
+  { id: 7, name: "Hill Transport", from: "Dhaka", to: "Sylhet", departure: "10:00 AM", arrival: "03:00 PM", price: 1400, seats: 50, seatLayout: "2x2", amenities: ["ac", "water"] },
+  { id: 8, name: "Transtar", from: "Dhaka", to: "Chittagong", departure: "08:30 AM", arrival: "01:00 PM", price: 1100, seats: 55, seatLayout: "2x2", amenities: ["wifi", "ac", "charging"] },
+  { id: 9, name: "Sohag Express", from: "Dhaka", to: "Chittagong", departure: "11:00 AM", arrival: "04:00 PM", price: 950, seats: 65, seatLayout: "2x2", amenities: ["ac"] },
+  { id: 10, name: "Ocean Travels", from: "Dhaka", to: "Khulna", departure: "09:00 AM", arrival: "02:00 PM", price: 1300, seats: 45, seatLayout: "2x2", amenities: ["wifi", "ac", "charging", "water"] },
+  { id: 11, name: "Royal Coach", from: "Dhaka", to: "Rajshahi", departure: "06:00 AM", arrival: "11:00 AM", price: 1250, seats: 50, seatLayout: "2x2", amenities: ["ac", "charging"] },
+  { id: 12, name: "Star Travels", from: "Dhaka", to: "Bogra", departure: "07:30 AM", arrival: "11:30 AM", price: 900, seats: 60, seatLayout: "2x2", amenities: ["ac"] },
+  { id: 13, name: "Metro Transport", from: "Dhaka", to: "Mymensingh", departure: "08:00 AM", arrival: "10:30 AM", price: 700, seats: 55, seatLayout: "2x2", amenities: ["wifi", "ac"] },
+  { id: 14, name: "Comfort Bus", from: "Chittagong", to: "Sylhet", departure: "06:00 AM", arrival: "02:00 PM", price: 1600, seats: 40, seatLayout: "1x2", amenities: ["wifi", "ac", "charging"] },
+  { id: 15, name: "Coastal Travels", from: "Chittagong", to: "Jessore", departure: "07:00 AM", arrival: "03:00 PM", price: 1800, seats: 45, seatLayout: "2x2", amenities: ["ac", "water"] },
+  { id: 16, name: "Khulna Connect", from: "Khulna", to: "Jessore", departure: "08:00 AM", arrival: "11:00 AM", price: 700, seats: 50, seatLayout: "2x2", amenities: ["ac"] },
+  { id: 17, name: "North Express", from: "Rajshahi", to: "Bogra", departure: "09:00 AM", arrival: "12:00 PM", price: 600, seats: 55, seatLayout: "2x2", amenities: ["ac", "charging"] },
+  { id: 18, name: "Rangpur Link", from: "Dhaka", to: "Rangpur", departure: "06:00 AM", arrival: "10:00 AM", price: 1100, seats: 60, seatLayout: "2x2", amenities: ["wifi", "ac"] },
+  { id: 19, name: "Barisal Direct", from: "Dhaka", to: "Barisal", departure: "08:00 AM", arrival: "01:00 PM", price: 1400, seats: 50, seatLayout: "2x2", amenities: ["ac", "charging", "water"] },
+  { id: 20, name: "Comilla Express", from: "Dhaka", to: "Comilla", departure: "07:00 AM", arrival: "11:00 AM", price: 950, seats: 65, seatLayout: "2x2", amenities: ["ac"] }
 ];
 
 const AMENITY_LABELS = {
@@ -31,18 +31,40 @@ const AMENITY_LABELS = {
 };
 
 const MAX_SEAT_SELECTION = 4;
+const SEAT_LAYOUTS = {
+  "2x2": { label: "2+2", left: ["A", "B"], right: ["C", "D"] },
+  "1x2": { label: "1+2", left: ["A"], right: ["B", "C"] }
+};
 
 function formatDateISO(date) {
   return date.toISOString().split("T")[0];
 }
 
-function getSeatLabels(totalSeats) {
-  const cols = ["A", "B", "C", "D"];
-  return Array.from({ length: totalSeats }, (_, idx) => {
-    const row = Math.floor(idx / cols.length) + 1;
-    const col = cols[idx % cols.length];
-    return `${row}${col}`;
-  });
+function getSeatLayout(bus) {
+  return SEAT_LAYOUTS[bus?.seatLayout] || SEAT_LAYOUTS["2x2"];
+}
+
+function getSeatRows(totalSeats, layout) {
+  const rows = [];
+  let count = 0;
+  let rowNo = 1;
+
+  while (count < totalSeats) {
+    const left = layout.left.map((col) => {
+      if (count >= totalSeats) return null;
+      count += 1;
+      return `${rowNo}${col}`;
+    });
+    const right = layout.right.map((col) => {
+      if (count >= totalSeats) return null;
+      count += 1;
+      return `${rowNo}${col}`;
+    });
+    rows.push({ left, right });
+    rowNo += 1;
+  }
+
+  return rows;
 }
 
 function App() {
@@ -282,17 +304,11 @@ function App() {
 
   const calendarCells = renderCalendarDays();
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const seatLayout = useMemo(() => getSeatLayout(seatPlanBus), [seatPlanBus]);
   const seatRows = useMemo(() => {
     if (!seatPlanBus) return [];
-    const allSeats = getSeatLabels(seatPlanBus.seats);
-    const rows = [];
-    for (let i = 0; i < allSeats.length; i += 4) {
-      const row = allSeats.slice(i, i + 4);
-      while (row.length < 4) row.push(null);
-      rows.push(row);
-    }
-    return rows;
-  }, [seatPlanBus]);
+    return getSeatRows(seatPlanBus.seats, seatLayout);
+  }, [seatPlanBus, seatLayout]);
   const bookedSeatsForPlan = useMemo(() => {
     if (!seatPlanBus) return new Set();
     return getBookedSeatSet(seatPlanBus.id, selectedDate);
@@ -707,53 +723,42 @@ function App() {
               <span><i className="fas fa-square-full seat-legend-icon available"></i> Available</span>
               <span><i className="fas fa-square-full seat-legend-icon selected"></i> Selected</span>
               <span><i className="fas fa-square-full seat-legend-icon booked"></i> Booked</span>
+              <span><i className="fas fa-th-large"></i> Layout: {seatLayout.label}</span>
             </div>
 
             <div className="driver-badge">Driver</div>
             <div className="seat-grid">
               {seatRows.map((row, rowIdx) => (
-                <div className="seat-row" key={`row-${rowIdx}`}>
-                  {row[0] ? (
+                <div
+                  className="seat-row"
+                  key={`row-${rowIdx}`}
+                  style={{
+                    gridTemplateColumns: `repeat(${seatLayout.left.length}, 1fr) 26px repeat(${seatLayout.right.length}, 1fr)`
+                  }}
+                >
+                  {row.left.map((seatNo, idx) => seatNo ? (
                     <button
+                      key={`left-${rowIdx}-${idx}`}
                       type="button"
-                      className={`seat-btn ${bookedSeatsForPlan.has(row[0]) ? "booked" : ""} ${selectedSeats.includes(row[0]) ? "selected" : ""}`}
-                      disabled={bookedSeatsForPlan.has(row[0])}
-                      onClick={() => toggleSeatSelection(row[0], bookedSeatsForPlan)}
+                      className={`seat-btn ${bookedSeatsForPlan.has(seatNo) ? "booked" : ""} ${selectedSeats.includes(seatNo) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(seatNo)}
+                      onClick={() => toggleSeatSelection(seatNo, bookedSeatsForPlan)}
                     >
-                      {row[0]}
+                      {seatNo}
                     </button>
-                  ) : <div className="seat-empty"></div>}
-                  {row[1] ? (
-                    <button
-                      type="button"
-                      className={`seat-btn ${bookedSeatsForPlan.has(row[1]) ? "booked" : ""} ${selectedSeats.includes(row[1]) ? "selected" : ""}`}
-                      disabled={bookedSeatsForPlan.has(row[1])}
-                      onClick={() => toggleSeatSelection(row[1], bookedSeatsForPlan)}
-                    >
-                      {row[1]}
-                    </button>
-                  ) : <div className="seat-empty"></div>}
+                  ) : <div className="seat-empty" key={`left-empty-${rowIdx}-${idx}`}></div>)}
                   <div className="seat-aisle"></div>
-                  {row[2] ? (
+                  {row.right.map((seatNo, idx) => seatNo ? (
                     <button
+                      key={`right-${rowIdx}-${idx}`}
                       type="button"
-                      className={`seat-btn ${bookedSeatsForPlan.has(row[2]) ? "booked" : ""} ${selectedSeats.includes(row[2]) ? "selected" : ""}`}
-                      disabled={bookedSeatsForPlan.has(row[2])}
-                      onClick={() => toggleSeatSelection(row[2], bookedSeatsForPlan)}
+                      className={`seat-btn ${bookedSeatsForPlan.has(seatNo) ? "booked" : ""} ${selectedSeats.includes(seatNo) ? "selected" : ""}`}
+                      disabled={bookedSeatsForPlan.has(seatNo)}
+                      onClick={() => toggleSeatSelection(seatNo, bookedSeatsForPlan)}
                     >
-                      {row[2]}
+                      {seatNo}
                     </button>
-                  ) : <div className="seat-empty"></div>}
-                  {row[3] ? (
-                    <button
-                      type="button"
-                      className={`seat-btn ${bookedSeatsForPlan.has(row[3]) ? "booked" : ""} ${selectedSeats.includes(row[3]) ? "selected" : ""}`}
-                      disabled={bookedSeatsForPlan.has(row[3])}
-                      onClick={() => toggleSeatSelection(row[3], bookedSeatsForPlan)}
-                    >
-                      {row[3]}
-                    </button>
-                  ) : <div className="seat-empty"></div>}
+                  ) : <div className="seat-empty" key={`right-empty-${rowIdx}-${idx}`}></div>)}
                 </div>
               ))}
             </div>
