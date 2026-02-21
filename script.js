@@ -35,9 +35,16 @@ const SEAT_LAYOUTS = {
   "2x2": { label: "2+2", left: ["A", "B"], right: ["C", "D"] },
   "1x2": { label: "1+2", left: ["A"], right: ["B", "C"] }
 };
+const EMPTY_PASSENGER = { name: "", phone: "", email: "" };
 
 function formatDateISO(date) {
   return date.toISOString().split("T")[0];
+}
+
+function generatePNR() {
+  const timePart = Date.now().toString(36).slice(-5).toUpperCase();
+  const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `SB-${timePart}${randomPart}`;
 }
 
 function getSeatLayout(bus) {
@@ -77,6 +84,11 @@ function App() {
   const [seatPlanBus, setSeatPlanBus] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [seatError, setSeatError] = useState("");
+  const [checkoutData, setCheckoutData] = useState(null);
+  const [passenger, setPassenger] = useState(EMPTY_PASSENGER);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [activeTicket, setActiveTicket] = useState(null);
+  const [ticketOpen, setTicketOpen] = useState(false);
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
@@ -197,6 +209,8 @@ function App() {
     setSeatPlanBus(bus);
     setSelectedSeats([]);
     setSeatError("");
+    setCheckoutData(null);
+    setCheckoutError("");
   }
 
   function toggleSeatSelection(seatNo, bookedSet) {
@@ -214,7 +228,7 @@ function App() {
     });
   }
 
-  function confirmSeatBooking() {
+  function startCheckout() {
     if (!seatPlanBus || !selectedSeats.length) return;
     const latestBooked = getBookedSeatSet(seatPlanBus.id, selectedDate);
     const alreadyTaken = selectedSeats.filter((seat) => latestBooked.has(seat));
@@ -223,21 +237,83 @@ function App() {
       setSelectedSeats((prev) => prev.filter((seat) => !alreadyTaken.includes(seat)));
       return;
     }
-    const bus = BUS_DATA.find((b) => b.id === seatPlanBus.id) || { from: "", to: "" };
+    setCheckoutData({
+      busId: seatPlanBus.id,
+      name: seatPlanBus.name,
+      from: seatPlanBus.from,
+      to: seatPlanBus.to,
+      date: selectedDate,
+      seats: [...selectedSeats],
+      seatCount: selectedSeats.length,
+      pricePerSeat: seatPlanBus.price,
+      price: seatPlanBus.price * selectedSeats.length
+    });
+    setCheckoutError("");
+  }
+
+  async function finalizeBooking() {
+    if (!checkoutData) return;
+    const name = passenger.name.trim();
+    const phone = passenger.phone.trim();
+
+    if (!name || !phone) {
+      setCheckoutError("Passenger name and phone are required.");
+      return;
+    }
+
+    const latestBooked = getBookedSeatSet(checkoutData.busId, checkoutData.date);
+    const alreadyTaken = checkoutData.seats.filter((seat) => latestBooked.has(seat));
+    if (alreadyTaken.length) {
+      setCheckoutError(`Seat already booked: ${alreadyTaken.join(", ")}. Please choose different seats.`);
+      setSelectedSeats((prev) => prev.filter((seat) => !alreadyTaken.includes(seat)));
+      return;
+    }
+
+    const pnr = generatePNR();
     const booking = {
       bookingId: Date.now(),
-      busId: bus.id,
-      name: bus.name,
-      from: bus.from,
-      to: bus.to,
-      date: selectedDate,
-      seats: selectedSeats,
-      seatCount: selectedSeats.length,
-      pricePerSeat: bus.price,
-      price: bus.price * selectedSeats.length,
+      busId: checkoutData.busId,
+      pnr,
+      name: checkoutData.name,
+      from: checkoutData.from,
+      to: checkoutData.to,
+      date: checkoutData.date,
+      seats: checkoutData.seats,
+      seatCount: checkoutData.seatCount,
+      pricePerSeat: checkoutData.pricePerSeat,
+      price: checkoutData.price,
+      passenger: {
+        name,
+        phone,
+        email: passenger.email.trim()
+      },
       createdAt: new Date().toISOString()
     };
+
+    const ticketText = [
+      "SwiftBus E-Ticket",
+      `PNR: ${pnr}`,
+      `Passenger: ${booking.passenger.name}`,
+      `Route: ${booking.from} -> ${booking.to}`,
+      `Date: ${booking.date}`,
+      `Seats: ${booking.seats.join(", ")}`,
+      `Fare: BDT ${booking.price}`
+    ].join("\n");
+
+    if (window.QRCode?.toDataURL) {
+      try {
+        booking.qrDataUrl = await window.QRCode.toDataURL(ticketText, { width: 200, margin: 1 });
+      } catch (_err) {
+        booking.qrDataUrl = "";
+      }
+    }
+
     setBookings((prev) => [...prev, booking]);
+    setActiveTicket(booking);
+    setTicketOpen(true);
+    setCheckoutData(null);
+    setPassenger(EMPTY_PASSENGER);
+    setCheckoutError("");
     setSeatPlanBus(null);
     setSelectedSeats([]);
     setSeatError("");
@@ -246,6 +322,55 @@ function App() {
 
   function cancelBooking(id) {
     setBookings((prev) => prev.filter((b) => b.bookingId !== id));
+  }
+
+  function openTicket(booking) {
+    setActiveTicket(booking);
+    setTicketOpen(true);
+  }
+
+  function printTicket(booking) {
+    if (!booking) return;
+    const popup = window.open("", "_blank", "width=760,height=840");
+    if (!popup) return;
+
+    const createdDate = new Date(booking.createdAt).toLocaleString();
+    const qrSection = booking.qrDataUrl
+      ? `<img src="${booking.qrDataUrl}" alt="QR Code" style="width:160px;height:160px;" />`
+      : `<div style="padding:12px;border:1px dashed #999;border-radius:8px;">QR unavailable</div>`;
+
+    popup.document.write(`
+      <html>
+        <head>
+          <title>SwiftBus Ticket ${booking.pnr || ""}</title>
+          <style>
+            body { font-family: Arial, sans-serif; color: #111827; padding: 28px; }
+            .card { max-width: 620px; margin: 0 auto; border: 1px solid #d1d5db; border-radius: 12px; padding: 20px; }
+            .row { margin-bottom: 10px; font-size: 14px; }
+            .title { font-size: 24px; margin: 0 0 14px; color: #059669; }
+            .pnr { display: inline-block; background: #ecfdf5; color: #065f46; padding: 6px 10px; border-radius: 999px; font-weight: 700; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1 class="title">SwiftBus E-Ticket</h1>
+            <div class="row"><span class="pnr">PNR: ${booking.pnr || "N/A"}</span></div>
+            <div class="row"><strong>Passenger:</strong> ${booking.passenger?.name || "N/A"}</div>
+            <div class="row"><strong>Phone:</strong> ${booking.passenger?.phone || "N/A"}</div>
+            <div class="row"><strong>Bus:</strong> ${booking.name}</div>
+            <div class="row"><strong>Route:</strong> ${booking.from} -> ${booking.to}</div>
+            <div class="row"><strong>Travel Date:</strong> ${booking.date || "N/A"}</div>
+            <div class="row"><strong>Seats:</strong> ${(booking.seats || []).join(", ")}</div>
+            <div class="row"><strong>Total Fare:</strong> BDT ${booking.price}</div>
+            <div class="row"><strong>Booked At:</strong> ${createdDate}</div>
+            <div class="row">${qrSection}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    popup.document.close();
+    popup.focus();
+    popup.print();
   }
 
   function openCalendar() {
@@ -600,8 +725,15 @@ function App() {
                     {!!b.seats?.length && (
                       <div className="booking-meta">Seats: {b.seats.join(", ")}</div>
                     )}
+                    {!!b.pnr && <div className="booking-meta">PNR: {b.pnr}</div>}
+                    {!!b.passenger?.name && (
+                      <div className="booking-meta">Passenger: {b.passenger.name}</div>
+                    )}
                   </div>
                   <div className="booking-actions">
+                    <button className="view-ticket-btn" onClick={() => openTicket(b)}>
+                      View Ticket
+                    </button>
                     <button className="cancel-booking-btn" onClick={() => cancelBooking(b.bookingId)}>
                       Cancel
                     </button>
@@ -769,8 +901,98 @@ function App() {
               <div className="seat-summary">
                 {selectedSeats.length ? `Selected: ${selectedSeats.join(", ")}` : "Select seats to continue"}
               </div>
-              <button type="button" className="book-now-btn" disabled={!selectedSeats.length} onClick={confirmSeatBooking}>
-                Confirm Booking (৳{seatPlanBus.price * selectedSeats.length})
+              <button type="button" className="book-now-btn" disabled={!selectedSeats.length} onClick={startCheckout}>
+                Continue Checkout (৳{seatPlanBus.price * selectedSeats.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {checkoutData && (
+        <div className="seat-plan-overlay" onClick={() => setCheckoutData(null)}>
+          <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Passenger Checkout</h3>
+            <p className="checkout-route">
+              {checkoutData.name} • {checkoutData.from} → {checkoutData.to} • {checkoutData.date}
+            </p>
+            <p className="checkout-route">Seats: {checkoutData.seats.join(", ")} • Total: ৳{checkoutData.price}</p>
+
+            <div className="checkout-form-grid">
+              <label>
+                Full Name
+                <input
+                  type="text"
+                  value={passenger.name}
+                  onChange={(e) => setPassenger((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="Passenger full name"
+                />
+              </label>
+              <label>
+                Phone Number
+                <input
+                  type="text"
+                  value={passenger.phone}
+                  onChange={(e) => setPassenger((prev) => ({ ...prev, phone: e.target.value }))}
+                  placeholder="01XXXXXXXXX"
+                />
+              </label>
+              <label>
+                Email (Optional)
+                <input
+                  type="email"
+                  value={passenger.email}
+                  onChange={(e) => setPassenger((prev) => ({ ...prev, email: e.target.value }))}
+                  placeholder="name@email.com"
+                />
+              </label>
+            </div>
+
+            {checkoutError && <p className="seat-error">{checkoutError}</p>}
+
+            <div className="checkout-actions">
+              <button type="button" className="ghost-btn" onClick={() => setCheckoutData(null)}>
+                Back
+              </button>
+              <button type="button" className="book-now-btn" onClick={finalizeBooking}>
+                Confirm & Issue Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {ticketOpen && activeTicket && (
+        <div className="seat-plan-overlay" onClick={() => setTicketOpen(false)}>
+          <div className="ticket-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ticket-head">
+              <h3>SwiftBus E-Ticket</h3>
+              <span className="ticket-pnr">PNR: {activeTicket.pnr || "N/A"}</span>
+            </div>
+            <div className="ticket-body">
+              <div className="ticket-details">
+                <p><strong>Passenger:</strong> {activeTicket.passenger?.name || "N/A"}</p>
+                <p><strong>Phone:</strong> {activeTicket.passenger?.phone || "N/A"}</p>
+                <p><strong>Bus:</strong> {activeTicket.name}</p>
+                <p><strong>Route:</strong> {activeTicket.from} → {activeTicket.to}</p>
+                <p><strong>Date:</strong> {activeTicket.date || "N/A"}</p>
+                <p><strong>Seats:</strong> {(activeTicket.seats || []).join(", ")}</p>
+                <p><strong>Total Fare:</strong> ৳{activeTicket.price}</p>
+              </div>
+              <div className="ticket-qr-wrap">
+                {activeTicket.qrDataUrl ? (
+                  <img src={activeTicket.qrDataUrl} alt="Ticket QR code" className="ticket-qr" />
+                ) : (
+                  <div className="ticket-qr-placeholder">QR unavailable</div>
+                )}
+              </div>
+            </div>
+            <div className="checkout-actions">
+              <button type="button" className="ghost-btn" onClick={() => setTicketOpen(false)}>
+                Close
+              </button>
+              <button type="button" className="book-now-btn" onClick={() => printTicket(activeTicket)}>
+                Print Ticket
               </button>
             </div>
           </div>
