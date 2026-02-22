@@ -654,6 +654,20 @@ footer {
   gap: 0.5rem;
 }
 
+.view-ticket-btn {
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.view-ticket-btn:hover {
+  background: #0284c7;
+}
+
 .cancel-booking-btn {
   background: #ef4444;
   color: #fff;
@@ -955,6 +969,129 @@ footer {
   font-size: 0.95rem;
 }
 
+.checkout-modal,
+.ticket-modal {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.25);
+}
+
+.checkout-modal h3,
+.ticket-modal h3 {
+  margin: 0;
+}
+
+.checkout-route {
+  margin: 0.6rem 0;
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+.checkout-form-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.checkout-form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  gap: 0.35rem;
+}
+
+.checkout-form-grid input {
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.checkout-actions {
+  margin-top: 0.95rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.ghost-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ghost-btn:hover {
+  background: #f9fafb;
+}
+
+.ticket-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+}
+
+.ticket-pnr {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+.ticket-body {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 1rem;
+  align-items: center;
+}
+
+.ticket-details p {
+  margin: 0 0 0.4rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.ticket-qr-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.ticket-qr {
+  width: 170px;
+  height: 170px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  padding: 0.3rem;
+  background: #fff;
+}
+
+.ticket-qr-placeholder {
+  width: 170px;
+  height: 170px;
+  border-radius: 0.5rem;
+  border: 1px dashed var(--border);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 640px) {
   .seat-plan-modal {
     padding: 1rem;
@@ -963,5 +1100,18 @@ footer {
   .seat-row {
     gap: 0.4rem;
     grid-template-columns: 1fr 1fr 18px 1fr 1fr;
+  }
+
+  .ticket-body {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-qr-wrap {
+    justify-content: flex-start;
+  }
+
+  .checkout-actions {
+    justify-content: stretch;
+    flex-direction: column;
   }
 }
