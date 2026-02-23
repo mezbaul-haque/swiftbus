@@ -89,6 +89,9 @@ function App() {
   const [checkoutError, setCheckoutError] = useState("");
   const [activeTicket, setActiveTicket] = useState(null);
   const [ticketOpen, setTicketOpen] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [confirmCancelBooking, setConfirmCancelBooking] = useState(null);
+  const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
 
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
@@ -108,6 +111,38 @@ function App() {
   const fromInputRef = useRef(null);
   const toInputRef = useRef(null);
 
+  function normalizeCity(value) {
+    return value.trim().toLowerCase();
+  }
+
+  function isSameCityPair(fromValue, toValue) {
+    const from = normalizeCity(fromValue);
+    const to = normalizeCity(toValue);
+    return !!from && !!to && from === to;
+  }
+
+  function setSameCityError() {
+    setSearchError("From and To cannot be the same city.");
+  }
+
+  function trySetFromCity(nextFrom) {
+    if (isSameCityPair(nextFrom, toCity)) {
+      setSameCityError();
+      return false;
+    }
+    setFromCity(nextFrom);
+    return true;
+  }
+
+  function trySetToCity(nextTo) {
+    if (isSameCityPair(fromCity, nextTo)) {
+      setSameCityError();
+      return false;
+    }
+    setToCity(nextTo);
+    return true;
+  }
+
   const uniqueCities = useMemo(() => {
     const set = new Set();
     BUS_DATA.forEach((b) => {
@@ -118,13 +153,58 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("swiftbus_bookings") || "[]");
-    setBookings(stored);
+    try {
+      const storedBookings = JSON.parse(localStorage.getItem("swiftbus_bookings") || "[]");
+      setBookings(Array.isArray(storedBookings) ? storedBookings : []);
+    } catch (_err) {
+      setBookings([]);
+    }
+
+    try {
+      const storedSearch = JSON.parse(localStorage.getItem("swiftbus_last_search") || "{}");
+      const storedFrom = typeof storedSearch.fromCity === "string" ? storedSearch.fromCity : "";
+      const rawStoredTo = typeof storedSearch.toCity === "string" ? storedSearch.toCity : "";
+      const storedTo = isSameCityPair(storedFrom, rawStoredTo) ? "" : rawStoredTo;
+      const storedDate = typeof storedSearch.selectedDate === "string" ? storedSearch.selectedDate : "";
+      setFromCity(storedFrom);
+      setToCity(storedTo);
+      setSelectedDate(storedDate);
+
+      if (!storedFrom.trim() && !storedTo.trim()) {
+        setFilteredBuses(BUS_DATA);
+      } else {
+        const from = storedFrom.trim().toLowerCase();
+        const to = storedTo.trim().toLowerCase();
+        setFilteredBuses(BUS_DATA.filter((bus) => {
+          const matchFrom = !from || bus.from.toLowerCase().includes(from);
+          const matchTo = !to || bus.to.toLowerCase().includes(to);
+          return matchFrom && matchTo;
+        }));
+      }
+    } catch (_err) {
+      setFromCity("");
+      setToCity("");
+      setSelectedDate("");
+      setFilteredBuses(BUS_DATA);
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem("swiftbus_bookings", JSON.stringify(bookings));
   }, [bookings]);
+
+  useEffect(() => {
+    localStorage.setItem("swiftbus_last_search", JSON.stringify({
+      fromCity,
+      toCity,
+      selectedDate
+    }));
+  }, [fromCity, toCity, selectedDate]);
+
+  useEffect(() => {
+    if (!searchError) return;
+    setSearchError("");
+  }, [fromCity, toCity, selectedDate]);
 
   useEffect(() => {
     function handleOutsideClick(e) {
@@ -169,8 +249,20 @@ function App() {
 
   function handleSearchSubmit(e) {
     e.preventDefault();
-    const from = fromCity.trim().toLowerCase();
-    const to = toCity.trim().toLowerCase();
+    const from = normalizeCity(fromCity);
+    const to = normalizeCity(toCity);
+
+    if (!selectedDate) {
+      setSearchError("Please select a travel date before searching.");
+      return;
+    }
+
+    if (from && to && from === to) {
+      setSameCityError();
+      return;
+    }
+
+    setSearchError("");
 
     if (!from && !to) {
       setFilteredBuses(BUS_DATA);
@@ -188,6 +280,7 @@ function App() {
   function handleSwapCities() {
     setFromCity(toCity);
     setToCity(fromCity);
+    setSearchError("");
     setFromSuggestions([]);
     setToSuggestions([]);
     setFromActiveIdx(-1);
@@ -212,7 +305,7 @@ function App() {
 
   function openSeatPlan(bus) {
     if (!selectedDate) {
-      alert("Please select a travel date before choosing seats.");
+      setSearchError("Please select a travel date before choosing seats.");
       return;
     }
     setSeatPlanBus(bus);
@@ -261,7 +354,7 @@ function App() {
   }
 
   async function finalizeBooking() {
-    if (!checkoutData) return;
+    if (!checkoutData || isBookingSubmitting) return;
     const name = passenger.name.trim();
     const phone = passenger.phone.trim();
 
@@ -278,59 +371,76 @@ function App() {
       return;
     }
 
-    const pnr = generatePNR();
-    const booking = {
-      bookingId: Date.now(),
-      busId: checkoutData.busId,
-      pnr,
-      name: checkoutData.name,
-      from: checkoutData.from,
-      to: checkoutData.to,
-      date: checkoutData.date,
-      seats: checkoutData.seats,
-      seatCount: checkoutData.seatCount,
-      pricePerSeat: checkoutData.pricePerSeat,
-      price: checkoutData.price,
-      passenger: {
-        name,
-        phone,
-        email: passenger.email.trim()
-      },
-      createdAt: new Date().toISOString()
-    };
+    setIsBookingSubmitting(true);
+    try {
+      const pnr = generatePNR();
+      const booking = {
+        bookingId: Date.now(),
+        busId: checkoutData.busId,
+        pnr,
+        name: checkoutData.name,
+        from: checkoutData.from,
+        to: checkoutData.to,
+        date: checkoutData.date,
+        seats: checkoutData.seats,
+        seatCount: checkoutData.seatCount,
+        pricePerSeat: checkoutData.pricePerSeat,
+        price: checkoutData.price,
+        passenger: {
+          name,
+          phone,
+          email: passenger.email.trim()
+        },
+        createdAt: new Date().toISOString()
+      };
 
-    const ticketText = [
-      "SwiftBus E-Ticket",
-      `PNR: ${pnr}`,
-      `Passenger: ${booking.passenger.name}`,
-      `Route: ${booking.from} -> ${booking.to}`,
-      `Date: ${booking.date}`,
-      `Seats: ${booking.seats.join(", ")}`,
-      `Fare: BDT ${booking.price}`
-    ].join("\n");
+      const ticketText = [
+        "SwiftBus E-Ticket",
+        `PNR: ${pnr}`,
+        `Passenger: ${booking.passenger.name}`,
+        `Route: ${booking.from} -> ${booking.to}`,
+        `Date: ${booking.date}`,
+        `Seats: ${booking.seats.join(", ")}`,
+        `Fare: BDT ${booking.price}`
+      ].join("\n");
 
-    if (window.QRCode?.toDataURL) {
-      try {
-        booking.qrDataUrl = await window.QRCode.toDataURL(ticketText, { width: 200, margin: 1 });
-      } catch (_err) {
-        booking.qrDataUrl = "";
+      if (window.QRCode?.toDataURL) {
+        try {
+          booking.qrDataUrl = await window.QRCode.toDataURL(ticketText, { width: 200, margin: 1 });
+        } catch (_err) {
+          booking.qrDataUrl = "";
+        }
       }
-    }
 
-    setBookings((prev) => [...prev, booking]);
-    setActiveTicket(booking);
-    setTicketOpen(true);
-    setCheckoutData(null);
-    setPassenger(EMPTY_PASSENGER);
-    setCheckoutError("");
-    setSeatPlanBus(null);
-    setSelectedSeats([]);
-    setSeatError("");
-    setView("bookings");
+      setBookings((prev) => [...prev, booking]);
+      setActiveTicket(booking);
+      setTicketOpen(true);
+      setCheckoutData(null);
+      setPassenger(EMPTY_PASSENGER);
+      setCheckoutError("");
+      setSeatPlanBus(null);
+      setSelectedSeats([]);
+      setSeatError("");
+      setView("bookings");
+    } catch (_err) {
+      setCheckoutError("Unable to issue ticket right now. Please try again.");
+    } finally {
+      setIsBookingSubmitting(false);
+    }
   }
 
   function cancelBooking(id) {
     setBookings((prev) => prev.filter((b) => b.bookingId !== id));
+  }
+
+  function requestCancelBooking(booking) {
+    setConfirmCancelBooking(booking);
+  }
+
+  function confirmCancel() {
+    if (!confirmCancelBooking) return;
+    cancelBooking(confirmCancelBooking.bookingId);
+    setConfirmCancelBooking(null);
   }
 
   function openTicket(booking) {
@@ -508,10 +618,12 @@ function App() {
                     updateSuggestionPosition(fromInputRef, setFromSugPos);
                   }}
                   onChange={(e) => {
-                    setFromCity(e.target.value);
-                    setFromSuggestions(filterCities(e.target.value));
-                    setFromActiveIdx(-1);
-                    updateSuggestionPosition(fromInputRef, setFromSugPos);
+                    const nextFrom = e.target.value;
+                    if (trySetFromCity(nextFrom)) {
+                      setFromSuggestions(filterCities(nextFrom));
+                      setFromActiveIdx(-1);
+                      updateSuggestionPosition(fromInputRef, setFromSugPos);
+                    }
                   }}
                   onKeyDown={(e) => {
                     if (!fromSuggestions.length) return;
@@ -524,8 +636,10 @@ function App() {
                     } else if (e.key === "Enter") {
                       if (fromActiveIdx >= 0) {
                         e.preventDefault();
-                        setFromCity(fromSuggestions[fromActiveIdx]);
-                        setFromSuggestions([]);
+                        const nextFrom = fromSuggestions[fromActiveIdx];
+                        if (trySetFromCity(nextFrom)) {
+                          setFromSuggestions([]);
+                        }
                       }
                     } else if (e.key === "Escape") {
                       setFromSuggestions([]);
@@ -548,8 +662,9 @@ function App() {
                       key={`${city}-${idx}`}
                       className={idx === fromActiveIdx ? "active" : ""}
                       onMouseDown={() => {
-                        setFromCity(city);
-                        setFromSuggestions([]);
+                        if (trySetFromCity(city)) {
+                          setFromSuggestions([]);
+                        }
                       }}
                     >
                       {city}
@@ -584,10 +699,12 @@ function App() {
                     updateSuggestionPosition(toInputRef, setToSugPos);
                   }}
                   onChange={(e) => {
-                    setToCity(e.target.value);
-                    setToSuggestions(filterCities(e.target.value));
-                    setToActiveIdx(-1);
-                    updateSuggestionPosition(toInputRef, setToSugPos);
+                    const nextTo = e.target.value;
+                    if (trySetToCity(nextTo)) {
+                      setToSuggestions(filterCities(nextTo));
+                      setToActiveIdx(-1);
+                      updateSuggestionPosition(toInputRef, setToSugPos);
+                    }
                   }}
                   onKeyDown={(e) => {
                     if (!toSuggestions.length) return;
@@ -600,8 +717,10 @@ function App() {
                     } else if (e.key === "Enter") {
                       if (toActiveIdx >= 0) {
                         e.preventDefault();
-                        setToCity(toSuggestions[toActiveIdx]);
-                        setToSuggestions([]);
+                        const nextTo = toSuggestions[toActiveIdx];
+                        if (trySetToCity(nextTo)) {
+                          setToSuggestions([]);
+                        }
                       }
                     } else if (e.key === "Escape") {
                       setToSuggestions([]);
@@ -624,8 +743,9 @@ function App() {
                       key={`${city}-${idx}`}
                       className={idx === toActiveIdx ? "active" : ""}
                       onMouseDown={() => {
-                        setToCity(city);
-                        setToSuggestions([]);
+                        if (trySetToCity(city)) {
+                          setToSuggestions([]);
+                        }
                       }}
                     >
                       {city}
@@ -653,6 +773,18 @@ function App() {
               <i className="fas fa-search"></i> Search
             </button>
           </form>
+          <div
+            className={`search-error ${searchError ? "active" : ""}`}
+            aria-live="polite"
+            role={searchError ? "alert" : "status"}
+          >
+            {searchError ? (
+              <>
+                <i className="fas fa-circle-exclamation" aria-hidden="true"></i>
+                <span>{searchError}</span>
+              </>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -752,7 +884,7 @@ function App() {
                     <button className="view-ticket-btn" onClick={() => openTicket(b)}>
                       View Ticket
                     </button>
-                    <button className="cancel-booking-btn" onClick={() => cancelBooking(b.bookingId)}>
+                    <button className="cancel-booking-btn" onClick={() => requestCancelBooking(b)}>
                       Cancel
                     </button>
                   </div>
@@ -844,6 +976,7 @@ function App() {
                 onClick={() => {
                   if (cell.isPast) return;
                   setSelectedDate(cell.dateStr);
+                  setSearchError("");
                   setCalendarOpen(false);
                 }}
               >
@@ -928,7 +1061,7 @@ function App() {
       )}
 
       {checkoutData && (
-        <div className="seat-plan-overlay" onClick={() => setCheckoutData(null)}>
+        <div className="seat-plan-overlay" onClick={() => !isBookingSubmitting && setCheckoutData(null)}>
           <div className="checkout-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Passenger Checkout</h3>
             <p className="checkout-route">
@@ -969,11 +1102,32 @@ function App() {
             {checkoutError && <p className="seat-error">{checkoutError}</p>}
 
             <div className="checkout-actions">
-              <button type="button" className="ghost-btn" onClick={() => setCheckoutData(null)}>
+              <button type="button" className="ghost-btn" disabled={isBookingSubmitting} onClick={() => setCheckoutData(null)}>
                 Back
               </button>
-              <button type="button" className="book-now-btn" onClick={finalizeBooking}>
-                Confirm & Issue Ticket
+              <button type="button" className="book-now-btn" disabled={isBookingSubmitting} onClick={finalizeBooking}>
+                {isBookingSubmitting ? "Issuing Ticket..." : "Confirm & Issue Ticket"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmCancelBooking && (
+        <div className="seat-plan-overlay" onClick={() => setConfirmCancelBooking(null)}>
+          <div className="checkout-modal cancel-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Cancel Booking</h3>
+            <p className="checkout-route">
+              Cancel booking for {confirmCancelBooking.from} → {confirmCancelBooking.to}
+              {confirmCancelBooking.date ? ` on ${confirmCancelBooking.date}` : ""}?
+            </p>
+            <p className="checkout-route">PNR: {confirmCancelBooking.pnr || "N/A"}</p>
+            <div className="checkout-actions">
+              <button type="button" className="ghost-btn" onClick={() => setConfirmCancelBooking(null)}>
+                Keep Booking
+              </button>
+              <button type="button" className="cancel-booking-btn" onClick={confirmCancel}>
+                Yes, Cancel
               </button>
             </div>
           </div>
