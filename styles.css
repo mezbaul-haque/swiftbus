@@ -133,6 +133,31 @@ nav {
   flex-direction: column;
 }
 
+.form-group-to {
+  position: relative;
+}
+
+.swap-inline-btn {
+  position: absolute;
+  top: -1px;
+  right: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text-light);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.swap-inline-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(16, 185, 129, 0.08);
+}
+
 .form-group label {
   font-size: 0.9rem;
   font-weight: 600;

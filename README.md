@@ -1,6 +1,6 @@
 # SwiftBus
 
-SwiftBus is a fast and efficient public transportation management system built with Swift.
+SwiftBus is a fast and efficient bus ticket booking interface built with React.
 
 ## Features
 

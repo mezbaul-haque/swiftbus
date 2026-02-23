@@ -185,6 +185,15 @@ function App() {
     setFilteredBuses(filtered);
   }
 
+  function handleSwapCities() {
+    setFromCity(toCity);
+    setToCity(fromCity);
+    setFromSuggestions([]);
+    setToSuggestions([]);
+    setFromActiveIdx(-1);
+    setToActiveIdx(-1);
+  }
+
   function getBookedSeatSet(busId, date) {
     const set = new Set();
     bookings.forEach((booking) => {
@@ -550,8 +559,17 @@ function App() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label>To</label>
+            <div className="form-group form-group-to">
+              <label htmlFor="to-city">To</label>
+              <button
+                type="button"
+                className="swap-inline-btn"
+                onClick={handleSwapCities}
+                title="Swap From and To cities"
+                aria-label="Swap From and To cities"
+              >
+                <i className="fas fa-right-left"></i> Swap
+              </button>
               <div className="autocomplete">
                 <input
                   type="text"
