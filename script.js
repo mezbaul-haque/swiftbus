@@ -36,6 +36,8 @@ const SEAT_LAYOUTS = {
   "1x2": { label: "1+2", left: ["A"], right: ["B", "C"] }
 };
 const EMPTY_PASSENGER = { name: "", phone: "", email: "" };
+const BD_PHONE_PATTERN = /^(?:\+?88)?01[3-9]\d{8}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
 
 function formatDateISO(date) {
   return date.toISOString().split("T")[0];
@@ -45,6 +47,42 @@ function generatePNR() {
   const timePart = Date.now().toString(36).slice(-5).toUpperCase();
   const randomPart = Math.random().toString(36).slice(2, 6).toUpperCase();
   return `SB-${timePart}${randomPart}`;
+}
+
+function getUniquePNR(existingBookings) {
+  const existing = new Set(existingBookings.map((b) => b?.pnr).filter(Boolean));
+  for (let i = 0; i < 10; i += 1) {
+    const pnr = generatePNR();
+    if (!existing.has(pnr)) return pnr;
+  }
+  return `SB-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 4).toUpperCase()}`;
+}
+
+function normalizePhone(value) {
+  return value.replace(/[\s-]/g, "").trim();
+}
+
+function isValidEmail(value) {
+  return EMAIL_PATTERN.test(value);
+}
+
+function isValidBdPhone(value) {
+  return BD_PHONE_PATTERN.test(value);
+}
+
+function sortSeats(seats) {
+  return [...seats].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+}
+
+function hasDuplicateBooking(existingBooking, candidate) {
+  if (!existingBooking) return false;
+  if (existingBooking.busId !== candidate.busId) return false;
+  if ((existingBooking.date || "") !== (candidate.date || "")) return false;
+  if (normalizePhone(existingBooking.passenger?.phone || "") !== candidate.phone) return false;
+  const existingSeats = sortSeats(Array.isArray(existingBooking.seats) ? existingBooking.seats : []);
+  const candidateSeats = sortSeats(candidate.seats);
+  if (existingSeats.length !== candidateSeats.length) return false;
+  return existingSeats.every((seat, idx) => seat === candidateSeats[idx]);
 }
 
 function getSeatLayout(bus) {
@@ -356,10 +394,19 @@ function App() {
   async function finalizeBooking() {
     if (!checkoutData || isBookingSubmitting) return;
     const name = passenger.name.trim();
-    const phone = passenger.phone.trim();
+    const phone = normalizePhone(passenger.phone);
+    const email = passenger.email.trim();
 
     if (!name || !phone) {
       setCheckoutError("Passenger name and phone are required.");
+      return;
+    }
+    if (!isValidBdPhone(phone)) {
+      setCheckoutError("Enter a valid Bangladeshi phone number (e.g., 01XXXXXXXXX or +8801XXXXXXXXX).");
+      return;
+    }
+    if (email && !isValidEmail(email)) {
+      setCheckoutError("Enter a valid email address or leave it empty.");
       return;
     }
 
@@ -370,10 +417,20 @@ function App() {
       setSelectedSeats((prev) => prev.filter((seat) => !alreadyTaken.includes(seat)));
       return;
     }
+    const duplicate = bookings.some((booking) => hasDuplicateBooking(booking, {
+      busId: checkoutData.busId,
+      date: checkoutData.date,
+      phone,
+      seats: checkoutData.seats
+    }));
+    if (duplicate) {
+      setCheckoutError("This booking already exists for the same passenger and seats.");
+      return;
+    }
 
     setIsBookingSubmitting(true);
     try {
-      const pnr = generatePNR();
+      const pnr = getUniquePNR(bookings);
       const booking = {
         bookingId: Date.now(),
         busId: checkoutData.busId,
@@ -389,7 +446,7 @@ function App() {
         passenger: {
           name,
           phone,
-          email: passenger.email.trim()
+          email
         },
         createdAt: new Date().toISOString()
       };
@@ -1086,6 +1143,8 @@ function App() {
                   value={passenger.phone}
                   onChange={(e) => setPassenger((prev) => ({ ...prev, phone: e.target.value }))}
                   placeholder="01XXXXXXXXX"
+                  inputMode="numeric"
+                  autoComplete="tel"
                 />
               </label>
               <label>
@@ -1095,6 +1154,7 @@ function App() {
                   value={passenger.email}
                   onChange={(e) => setPassenger((prev) => ({ ...prev, email: e.target.value }))}
                   placeholder="name@email.com"
+                  autoComplete="email"
                 />
               </label>
             </div>
