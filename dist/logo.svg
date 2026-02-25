@@ -1,0 +1,80 @@
+<svg
+  width="340"
+  height="90"
+  viewBox="0 0 340 90"
+  xmlns="http://www.w3.org/2000/svg"
+  role="img"
+  aria-label="SwiftBus logo"
+>
+  <defs>
+    <!-- Glass body -->
+    <linearGradient id="glassBody" x1="50%" y1="25%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#ecfeff" stop-opacity="0.25" />
+    </linearGradient>
+
+    <!-- Windshield glass -->
+    <linearGradient id="windshieldGlass" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#1e40af" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Speed trails (liquid streaks) -->
+  <g fill="#ffffff" opacity="0.35">
+    <rect x="0" y="36" width="22" height="4" rx="2"/>
+    <rect x="0" y="46" width="16" height="4" rx="2"/>
+    <rect x="0" y="56" width="10" height="4" rx="2"/>
+  </g>
+
+  <!-- Bus glass body -->
+  <rect
+    x="26"
+    y="24"
+    width="96"
+    height="40"
+    rx="11"
+    fill="url(#glassBody)"
+  />
+
+  <!-- Glass highlight layer -->
+  <path
+    d="M30 26 h88 a14 14 0 0 1 -14 12 h-60 a14 14 0 0 1 -14 -12 z"
+    fill="url(#glassHighlight)"
+    opacity="0.6"
+  />
+
+  <!-- Windshield -->
+  <rect
+    x="36"
+    y="28"
+    width="34"
+    height="24"
+    rx="10"
+    fill="url(#windshieldGlass)"
+  />
+
+  <!-- Side windows -->
+  <rect x="74" y="30" width="14" height="20" rx="6" fill="#ffffff" opacity="0.45"/>
+  <rect x="92" y="30" width="14" height="20" rx="6" fill="#ffffff" opacity="0.45"/>
+
+  <!-- Headlight glow -->
+  <circle cx="122" cy="50" r="3.5" fill="#ecfeff" />
+
+  <!-- Wheels -->
+  <circle cx="52" cy="66" r="7" fill="#022c22" opacity="0.7"/>
+  <circle cx="102" cy="66" r="7" fill="#022c22" opacity="0.7"/>
+
+  <!-- Brand name -->
+  <text
+    x="138"
+    y="58"
+    font-size="30"
+    font-family="Inter, system-ui, -apple-system, sans-serif"
+    font-weight="600"
+    fill="#ecfeff"
+    letter-spacing="0.4px"
+  >
+    SwiftBus
+  </text>
+</svg>
