@@ -464,6 +464,7 @@ export default function App() {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
     const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const todayStr = formatDateISO(today);
 
     const firstDay = new Date(year, month, 1).getDay();
@@ -483,7 +484,7 @@ export default function App() {
     for (let i = 1; i <= daysInMonth; i += 1) {
       const date = new Date(year, month, i);
       const dateStr = formatDateISO(date);
-      const isPast = date < new Date(todayStr);
+      const isPast = date < todayStart;
       cells.push({
         label: String(i),
         type: "current",
