@@ -28,6 +28,8 @@ export default function SearchHeader({
   updateSuggestionPosition,
   searchError
 }) {
+  const logoSrc = `${import.meta.env.BASE_URL}logo.svg`;
+
   return (
     <header className="hero">
       <nav>
@@ -39,7 +41,7 @@ export default function SearchHeader({
             window.scrollTo(0, 0);
           }}
         >
-          <img src="/logo.svg" alt="SwiftBus logo" />
+          <img src={logoSrc} alt="SwiftBus logo" />
         </div>
         <div className="nav-links">
           <a
