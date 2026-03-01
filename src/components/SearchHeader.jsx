@@ -26,7 +26,9 @@ export default function SearchHeader({
   setToSuggestions,
   filterCities,
   updateSuggestionPosition,
-  searchError
+  searchError,
+  currentUser,
+  onLogout
 }) {
   const logoSrc = `${import.meta.env.BASE_URL}logo.svg`;
 
@@ -64,7 +66,12 @@ export default function SearchHeader({
             My Bookings
           </a>
           <a href="#">Contact</a>
-          <button className="btn-login">Login</button>
+          <div className="user-section">
+            <span className="username">{currentUser?.email || currentUser?.displayName || "User"}</span>
+            <button className="btn-logout" onClick={onLogout}>
+              Logout
+            </button>
+          </div>
         </div>
       </nav>
 
