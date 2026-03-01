@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
+import { auth, db } from "./config/firebase";
 import SearchHeader from "./components/SearchHeader";
 import BusResults from "./components/BusResults";
 import BookingsSection from "./components/BookingsSection";
@@ -7,6 +10,7 @@ import CalendarPicker from "./components/CalendarPicker";
 import SeatPlanModal from "./components/SeatPlanModal";
 import { CancelBookingModal, CheckoutModal } from "./components/CheckoutModal";
 import TicketModal from "./components/TicketModal";
+import LoginModal from "./components/LoginModal";
 import { BUS_DATA, EMPTY_PASSENGER, MAX_SEAT_SELECTION } from "./data/constants";
 import {
   formatDateISO,
@@ -18,16 +22,19 @@ import {
   isValidEmail,
   normalizePhone
 } from "./utils/booking";
-import useLocalStorageState from "./hooks/useLocalStorageState";
 
 const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [fromCity, setFromCity] = useState("");
   const [toCity, setToCity] = useState("");
   const [filteredBuses, setFilteredBuses] = useState(BUS_DATA);
   const [view, setView] = useState("search");
-  const [bookings, setBookings] = useLocalStorageState("swiftbus_bookings", []);
+  const [bookings, setBookings] = useState([]);
+  const [isSyncingBookings, setIsSyncingBookings] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
   const [seatPlanBus, setSeatPlanBus] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -99,6 +106,49 @@ export default function App() {
       set.add(b.to);
     });
     return Array.from(set).sort();
+  }, []);
+
+  useEffect(() => {
+    // Listen to Firebase auth state changes
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setIsAuthLoading(false);
+
+      if (user) {
+        // Load user profile doc
+        (async () => {
+          try {
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) setCurrentUserProfile(userDoc.data());
+            else setCurrentUserProfile(null);
+          } catch (e) {
+            console.error("Failed to load user profile:", e);
+            setCurrentUserProfile(null);
+          }
+        })();
+        // Subscribe to user's bookings from Firestore
+        const bookingsRef = collection(db, "bookings");
+        const q = query(bookingsRef, where("userId", "==", user.uid));
+        
+        const unsubscribeBookings = onSnapshot(q, (snapshot) => {
+          const bookingsData = snapshot.docs.map((doc) => ({
+            ...doc.data(),
+            bookingId: doc.id
+          }));
+          setBookings(bookingsData);
+          setIsSyncingBookings(false);
+        }, (error) => {
+          console.error("Error syncing bookings:", error);
+          setIsSyncingBookings(false);
+        });
+
+        return () => unsubscribeBookings();
+      } else {
+        setBookings([]);
+      }
+    });
+
+    return () => unsubscribeAuth();
   }, []);
 
   useEffect(() => {
@@ -298,7 +348,7 @@ export default function App() {
   }
 
   async function finalizeBooking() {
-    if (!checkoutData || isBookingSubmitting) return;
+    if (!checkoutData || isBookingSubmitting || !currentUser) return;
     const name = passenger.name.trim();
     const phone = normalizePhone(passenger.phone);
     const email = passenger.email.trim();
@@ -338,7 +388,7 @@ export default function App() {
     try {
       const pnr = getUniquePNR(bookingList);
       const booking = {
-        bookingId: Date.now(),
+        userId: currentUser.uid,
         busId: checkoutData.busId,
         pnr,
         name: checkoutData.name,
@@ -354,7 +404,7 @@ export default function App() {
           phone,
           email
         },
-        createdAt: new Date().toISOString()
+        createdAt: serverTimestamp()
       };
 
       const ticketText = [
@@ -373,8 +423,11 @@ export default function App() {
         booking.qrDataUrl = "";
       }
 
-      setBookings((prev) => [...(Array.isArray(prev) ? prev : []), booking]);
-      setActiveTicket(booking);
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, "bookings"), booking);
+      const bookingWithId = { ...booking, bookingId: docRef.id, createdAt: new Date().toISOString() };
+
+      setActiveTicket(bookingWithId);
       setTicketOpen(true);
       setCheckoutData(null);
       setPassenger(EMPTY_PASSENGER);
@@ -383,7 +436,8 @@ export default function App() {
       setSelectedSeats([]);
       setSeatError("");
       setView("bookings");
-    } catch {
+    } catch (error) {
+      console.error("Error saving booking:", error);
       setCheckoutError("Unable to issue ticket right now. Please try again.");
     } finally {
       setIsBookingSubmitting(false);
@@ -391,7 +445,10 @@ export default function App() {
   }
 
   function cancelBooking(id) {
-    setBookings((prev) => prev.filter((b) => b.bookingId !== id));
+    deleteDoc(doc(db, "bookings", id))
+      .catch((error) => {
+        console.error("Error deleting booking:", error);
+      });
   }
 
   function requestCancelBooking(booking) {
@@ -460,6 +517,27 @@ export default function App() {
     setCalendarOpen(true);
   }
 
+  function handleLogin(firebaseUser) {
+    setCurrentUser(firebaseUser);
+  }
+
+  function handleLogout() {
+    setIsAuthLoading(true);
+    signOut(auth)
+      .then(() => {
+        setCurrentUser(null);
+        setView("search");
+        setFromCity("");
+        setToCity("");
+        setSelectedDate("");
+        setBookings([]);
+      })
+      .catch((error) => {
+        console.error("Error logging out:", error);
+        setIsAuthLoading(false);
+      });
+  }
+
   function renderCalendarDays() {
     const year = calendarDate.getFullYear();
     const month = calendarDate.getMonth();
@@ -521,36 +599,69 @@ export default function App() {
 
   return (
     <>
-      <SearchHeader
-        setView={setView}
-        uniqueCities={uniqueCities}
-        fromCity={fromCity}
-        toCity={toCity}
-        selectedDate={selectedDate}
-        handleSearchSubmit={handleSearchSubmit}
-        handleSwapCities={handleSwapCities}
-        travelDateRef={travelDateRef}
-        openCalendar={openCalendar}
-        fromInputRef={fromInputRef}
-        toInputRef={toInputRef}
-        fromSuggestions={fromSuggestions}
-        toSuggestions={toSuggestions}
-        fromActiveIdx={fromActiveIdx}
-        toActiveIdx={toActiveIdx}
-        setFromActiveIdx={setFromActiveIdx}
-        setToActiveIdx={setToActiveIdx}
-        fromSugPos={fromSugPos}
-        toSugPos={toSugPos}
-        fromListRef={fromListRef}
-        toListRef={toListRef}
-        trySetFromCity={trySetFromCity}
-        trySetToCity={trySetToCity}
-        setFromSuggestions={setFromSuggestions}
-        setToSuggestions={setToSuggestions}
-        filterCities={filterCities}
-        updateSuggestionPosition={updateSuggestionPosition}
-        searchError={searchError}
-      />
+      {isAuthLoading ? (
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)"
+        }}>
+          <div style={{ textAlign: "center", color: "white" }}>
+            <div style={{
+              width: "50px",
+              height: "50px",
+              border: "4px solid rgba(255,255,255,0.3)",
+              borderTop: "4px solid white",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              margin: "0 auto 20px"
+            }}></div>
+            <p style={{ fontSize: "18px", margin: 0 }}>Loading SwiftBus...</p>
+          </div>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+        </div>
+      ) : !currentUser ? (
+        <LoginModal onLogin={handleLogin} />
+      ) : (
+        <>
+          <SearchHeader
+            setView={setView}
+            uniqueCities={uniqueCities}
+            fromCity={fromCity}
+            toCity={toCity}
+            selectedDate={selectedDate}
+            handleSearchSubmit={handleSearchSubmit}
+            handleSwapCities={handleSwapCities}
+            travelDateRef={travelDateRef}
+            openCalendar={openCalendar}
+            fromInputRef={fromInputRef}
+            toInputRef={toInputRef}
+            fromSuggestions={fromSuggestions}
+            toSuggestions={toSuggestions}
+            fromActiveIdx={fromActiveIdx}
+            toActiveIdx={toActiveIdx}
+            setFromActiveIdx={setFromActiveIdx}
+            setToActiveIdx={setToActiveIdx}
+            fromSugPos={fromSugPos}
+            toSugPos={toSugPos}
+            fromListRef={fromListRef}
+            toListRef={toListRef}
+            trySetFromCity={trySetFromCity}
+            trySetToCity={trySetToCity}
+            setFromSuggestions={setFromSuggestions}
+            setToSuggestions={setToSuggestions}
+            filterCities={filterCities}
+            updateSuggestionPosition={updateSuggestionPosition}
+            searchError={searchError}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+          />
 
       <main className="container">
         <BusResults
@@ -639,6 +750,8 @@ export default function App() {
         setTicketOpen={setTicketOpen}
         printTicket={printTicket}
       />
+        </>
+      )}
     </>
   );
 }
