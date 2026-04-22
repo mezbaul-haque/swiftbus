@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, reload, sendEmailVerification, signOut } from "firebase/auth";
 import { collection, query, where, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, getDoc } from "firebase/firestore";
 import { auth, db } from "./config/firebase";
 import SearchHeader from "./components/SearchHeader";
@@ -29,6 +29,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState("login");
+  const [verificationNotice, setVerificationNotice] = useState("");
+  const [verificationActionMessage, setVerificationActionMessage] = useState("");
+  const [isVerificationActionLoading, setIsVerificationActionLoading] = useState(false);
   const [fromCity, setFromCity] = useState("");
   const [toCity, setToCity] = useState("");
   const [filteredBuses, setFilteredBuses] = useState(BUS_DATA);
@@ -113,6 +118,7 @@ export default function App() {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setIsAuthLoading(false);
+      setVerificationActionMessage("");
 
       if (user) {
         // Load user profile doc
@@ -145,11 +151,19 @@ export default function App() {
         return () => unsubscribeBookings();
       } else {
         setBookings([]);
+        setCurrentUserProfile(null);
       }
     });
 
     return () => unsubscribeAuth();
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.emailVerified) {
+      setVerificationNotice("");
+      setVerificationActionMessage("");
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     try {
@@ -298,6 +312,7 @@ export default function App() {
   }
 
   function openSeatPlan(bus) {
+    if (!ensureVerifiedUser("Please log in to choose seats.")) return;
     if (!selectedDate) {
       setSearchError("Please select a travel date before choosing seats.");
       return;
@@ -348,7 +363,8 @@ export default function App() {
   }
 
   async function finalizeBooking() {
-    if (!checkoutData || isBookingSubmitting || !currentUser) return;
+    if (!checkoutData || isBookingSubmitting) return;
+    if (!ensureVerifiedUser("Please log in to complete your booking.")) return;
     const name = passenger.name.trim();
     const phone = normalizePhone(passenger.phone);
     const email = passenger.email.trim();
@@ -517,8 +533,40 @@ export default function App() {
     setCalendarOpen(true);
   }
 
-  function handleLogin(firebaseUser) {
+  function openAuthModal(mode = "login") {
+    setAuthModalMode(mode);
+    setIsLoginModalOpen(true);
+  }
+
+  function closeAuthModal() {
+    setIsLoginModalOpen(false);
+  }
+
+  function ensureVerifiedUser(loginMessage = "Please log in to continue.") {
+    if (!currentUser) {
+      setSearchError(loginMessage);
+      openAuthModal("login");
+      return false;
+    }
+
+    if (!currentUser.emailVerified) {
+      setVerificationNotice(`Check ${currentUser.email} and verify your email to continue.`);
+      setSearchError("Please verify your email to continue.");
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleLogin(firebaseUser, options = {}) {
     setCurrentUser(firebaseUser);
+    setIsLoginModalOpen(false);
+    if (options.needsVerification) {
+      setVerificationNotice(options.message || `Check ${firebaseUser.email} and verify your email to continue.`);
+      setView("search");
+      return;
+    }
+    setVerificationNotice("");
   }
 
   function handleLogout() {
@@ -526,16 +574,57 @@ export default function App() {
     signOut(auth)
       .then(() => {
         setCurrentUser(null);
+        setCurrentUserProfile(null);
         setView("search");
-        setFromCity("");
-        setToCity("");
-        setSelectedDate("");
         setBookings([]);
+        setVerificationNotice("");
+        setVerificationActionMessage("");
       })
       .catch((error) => {
         console.error("Error logging out:", error);
         setIsAuthLoading(false);
       });
+  }
+
+  async function handleResendVerification() {
+    if (!auth.currentUser) return;
+    setVerificationActionMessage("");
+    setIsVerificationActionLoading(true);
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setVerificationActionMessage("Verification email sent. Please check your inbox.");
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+      setVerificationActionMessage("Could not send verification email right now.");
+    } finally {
+      setIsVerificationActionLoading(false);
+    }
+  }
+
+  async function handleRefreshVerification() {
+    if (!auth.currentUser) return;
+    setVerificationActionMessage("");
+    setIsVerificationActionLoading(true);
+    try {
+      await reload(auth.currentUser);
+      setCurrentUser({ ...auth.currentUser });
+      if (auth.currentUser.emailVerified) {
+        setVerificationNotice("");
+        setVerificationActionMessage("Email verified. You can continue now.");
+      } else {
+        setVerificationActionMessage("Still waiting for verification. Please check your email and try again.");
+      }
+    } catch (error) {
+      console.error("Failed to refresh verification status:", error);
+      setVerificationActionMessage("Could not refresh verification status right now.");
+    } finally {
+      setIsVerificationActionLoading(false);
+    }
+  }
+
+  function handleOpenBookings() {
+    if (!ensureVerifiedUser("Please log in to view your bookings.")) return;
+    setView("bookings");
   }
 
   function renderCalendarDays() {
@@ -599,7 +688,7 @@ export default function App() {
 
   return (
     <>
-      {isAuthLoading ? (
+      {isAuthLoading && (
         <div style={{
           display: "flex",
           justifyContent: "center",
@@ -626,9 +715,9 @@ export default function App() {
             }
           `}</style>
         </div>
-      ) : !currentUser ? (
-        <LoginModal onLogin={handleLogin} />
-      ) : (
+      )}
+
+      {!isAuthLoading && (
         <>
           <SearchHeader
             setView={setView}
@@ -661,95 +750,124 @@ export default function App() {
             searchError={searchError}
             currentUser={currentUser}
             onLogout={handleLogout}
+            onOpenLogin={() => openAuthModal("login")}
+            onOpenRegister={() => openAuthModal("register")}
+            onOpenBookings={handleOpenBookings}
           />
 
-      <main className="container">
-        <BusResults
-          view={view}
-          filteredBuses={filteredBuses}
-          getAvailableSeatCount={getAvailableSeatCount}
-          selectedDate={selectedDate}
-          openSeatPlan={openSeatPlan}
-        />
+          {currentUser && !currentUser.emailVerified && verificationNotice && (
+            <section className="verification-banner" aria-live="polite">
+              <div>
+                <strong>Verify your email to continue.</strong>
+                <p>{verificationNotice}</p>
+                {verificationActionMessage ? <span>{verificationActionMessage}</span> : null}
+              </div>
+              <div className="verification-banner-actions">
+                <button type="button" className="btn-ghost-light banner-action-btn" onClick={handleResendVerification} disabled={isVerificationActionLoading}>
+                  Resend Email
+                </button>
+                <button type="button" className="banner-action-btn" onClick={handleRefreshVerification} disabled={isVerificationActionLoading}>
+                  I Verified
+                </button>
+              </div>
+            </section>
+          )}
 
-        <BookingsSection
-          view={view}
-          bookings={bookingList}
-          setView={setView}
-          openTicket={openTicket}
-          requestCancelBooking={requestCancelBooking}
-        />
-      </main>
+          <main className="container">
+            <BusResults
+              view={view}
+              filteredBuses={filteredBuses}
+              getAvailableSeatCount={getAvailableSeatCount}
+              selectedDate={selectedDate}
+              openSeatPlan={openSeatPlan}
+            />
 
-      <footer>
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>SwiftBus</h3>
-            <p>Your trusted partner for comfortable bus travel across Bangladesh.</p>
-          </div>
-          <div className="footer-section">
-            <h3>Quick Links</h3>
-            <a href="#">About Us</a>
-            <a href="#">Contact</a>
-            <a href="#">FAQs</a>
-          </div>
-          <div className="footer-section">
-            <h3>Contact Us</h3>
-            <p>Email: info@swiftbus.com</p>
-            <p>Phone: +880 1234 567890</p>
-          </div>
-        </div>
-        <div className="copyright">&copy; 2024 SwiftBus. All rights reserved.</div>
-      </footer>
+            <BookingsSection
+              view={view}
+              bookings={bookingList}
+              setView={setView}
+              openTicket={openTicket}
+              requestCancelBooking={requestCancelBooking}
+            />
+          </main>
 
-      <CalendarPicker
-        calendarOpen={calendarOpen}
-        calendarRef={calendarRef}
-        calendarPos={calendarPos}
-        calendarDate={calendarDate}
-        setCalendarDate={setCalendarDate}
-        monthNames={monthNames}
-        calendarCells={calendarCells}
-        setSelectedDate={setSelectedDate}
-        setSearchError={setSearchError}
-        setCalendarOpen={setCalendarOpen}
-      />
+          <footer>
+            <div className="footer-content">
+              <div className="footer-section">
+                <h3>SwiftBus</h3>
+                <p>Your trusted partner for comfortable bus travel across Bangladesh.</p>
+              </div>
+              <div className="footer-section">
+                <h3>Quick Links</h3>
+                <a href="#">About Us</a>
+                <a href="#">Contact</a>
+                <a href="#">FAQs</a>
+              </div>
+              <div className="footer-section">
+                <h3>Contact Us</h3>
+                <p>Email: info@swiftbus.com</p>
+                <p>Phone: +880 1234 567890</p>
+              </div>
+            </div>
+            <div className="copyright">&copy; 2024 SwiftBus. All rights reserved.</div>
+          </footer>
 
-      <SeatPlanModal
-        seatPlanBus={seatPlanBus}
-        selectedDate={selectedDate}
-        setSeatPlanBus={setSeatPlanBus}
-        seatLayout={seatLayout}
-        seatRows={seatRows}
-        bookedSeatsForPlan={bookedSeatsForPlan}
-        selectedSeats={selectedSeats}
-        toggleSeatSelection={toggleSeatSelection}
-        seatError={seatError}
-        startCheckout={startCheckout}
-      />
+          <CalendarPicker
+            calendarOpen={calendarOpen}
+            calendarRef={calendarRef}
+            calendarPos={calendarPos}
+            calendarDate={calendarDate}
+            setCalendarDate={setCalendarDate}
+            monthNames={monthNames}
+            calendarCells={calendarCells}
+            setSelectedDate={setSelectedDate}
+            setSearchError={setSearchError}
+            setCalendarOpen={setCalendarOpen}
+          />
 
-      <CheckoutModal
-        checkoutData={checkoutData}
-        isBookingSubmitting={isBookingSubmitting}
-        setCheckoutData={setCheckoutData}
-        passenger={passenger}
-        setPassenger={setPassenger}
-        checkoutError={checkoutError}
-        finalizeBooking={finalizeBooking}
-      />
+          <SeatPlanModal
+            seatPlanBus={seatPlanBus}
+            selectedDate={selectedDate}
+            setSeatPlanBus={setSeatPlanBus}
+            seatLayout={seatLayout}
+            seatRows={seatRows}
+            bookedSeatsForPlan={bookedSeatsForPlan}
+            selectedSeats={selectedSeats}
+            toggleSeatSelection={toggleSeatSelection}
+            seatError={seatError}
+            startCheckout={startCheckout}
+          />
 
-      <CancelBookingModal
-        confirmCancelBooking={confirmCancelBooking}
-        setConfirmCancelBooking={setConfirmCancelBooking}
-        confirmCancel={confirmCancel}
-      />
+          <CheckoutModal
+            checkoutData={checkoutData}
+            isBookingSubmitting={isBookingSubmitting}
+            setCheckoutData={setCheckoutData}
+            passenger={passenger}
+            setPassenger={setPassenger}
+            checkoutError={checkoutError}
+            finalizeBooking={finalizeBooking}
+          />
 
-      <TicketModal
-        ticketOpen={ticketOpen}
-        activeTicket={activeTicket}
-        setTicketOpen={setTicketOpen}
-        printTicket={printTicket}
-      />
+          <CancelBookingModal
+            confirmCancelBooking={confirmCancelBooking}
+            setConfirmCancelBooking={setConfirmCancelBooking}
+            confirmCancel={confirmCancel}
+          />
+
+          <TicketModal
+            ticketOpen={ticketOpen}
+            activeTicket={activeTicket}
+            setTicketOpen={setTicketOpen}
+            printTicket={printTicket}
+          />
+
+          {isLoginModalOpen && (
+            <LoginModal
+              onLogin={handleLogin}
+              onClose={closeAuthModal}
+              initialMode={authModalMode}
+            />
+          )}
         </>
       )}
     </>

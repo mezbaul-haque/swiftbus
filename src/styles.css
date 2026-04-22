@@ -1255,6 +1255,7 @@ footer {
 }
 
 .login-modal {
+  position: relative;
   background: white;
   border-radius: 12px;
   padding: 3rem 2rem;
@@ -1288,6 +1289,29 @@ footer {
   font-size: 1.5rem;
   text-align: center;
   font-weight: 600;
+}
+
+.login-modal .auth-helper-text {
+  margin: -1rem 0 1.5rem;
+  color: var(--text-light);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  color: var(--text);
 }
 
 .login-modal .form-group {
@@ -1357,6 +1381,10 @@ footer {
   font-size: 0.95rem;
 }
 
+.login-modal .auth-toggle-secondary {
+  margin-top: 0.75rem;
+}
+
 .login-modal .auth-toggle button {
   background: none;
   border: none;
@@ -1401,3 +1429,82 @@ footer {
   border-color: rgba(255, 255, 255, 0.8);
 }
 
+.guest-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.btn-ghost-light {
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-ghost-light:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.verification-banner {
+  max-width: 1200px;
+  margin: 1.5rem auto 0;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+.verification-banner p,
+.verification-banner span {
+  margin: 0.35rem 0 0;
+}
+
+.verification-banner-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.banner-action-btn {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 0.7rem 1rem;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.banner-action-btn:disabled,
+.btn-ghost-light:disabled,
+.btn-logout:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+@media (max-width: 768px) {
+  .guest-actions,
+  .verification-banner,
+  .verification-banner-actions {
+    width: 100%;
+  }
+
+  .verification-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+}

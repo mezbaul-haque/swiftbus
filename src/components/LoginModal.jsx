@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -10,15 +10,21 @@ import { auth } from "../config/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../config/firebase";
 
-export default function LoginModal({ onLogin }) {
+export default function LoginModal({ onLogin, onClose, initialMode = "login" }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(initialMode === "register");
   const [isLoading, setIsLoading] = useState(false);
   const [infoMessage, setInfoMessage] = useState("");
+
+  useEffect(() => {
+    setIsRegistering(initialMode === "register");
+    setError("");
+    setInfoMessage("");
+  }, [initialMode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,26 +79,30 @@ export default function LoginModal({ onLogin }) {
         // Send verification email
         try {
           await sendEmailVerification(user);
-          setInfoMessage("Verification email sent — please check your inbox before logging in.");
+          onLogin(user, {
+            needsVerification: true,
+            message: `Account created. Check ${email} and verify your email to continue.`
+          });
         } catch (e) {
           console.error("Failed to send verification email:", e);
           setError("Account created, but failed to send verification email. Check your Firebase settings.");
+          onLogin(user, {
+            needsVerification: true,
+            message: "Account created. We could not send the verification email yet."
+          });
         }
-        // Sign out the user so they must verify before logging in
-        try { await signOut(auth); } catch {}
-        setIsRegistering(false);
       } else {
         // Login mode
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         if (!user.emailVerified) {
-          // force sign out and instruct user to verify
-          try { await signOut(auth); } catch {}
-          setError("Email not verified. Please check your inbox. You can resend verification below.");
-          setInfoMessage("");
-          return;
+          onLogin(user, {
+            needsVerification: true,
+            message: `Check ${user.email} and verify your email to continue.`
+          });
+        } else {
+          onLogin(user);
         }
-        onLogin(user);
       }
     } catch (err) {
       let errorMessage = err.message;
@@ -141,8 +151,18 @@ export default function LoginModal({ onLogin }) {
   return (
     <div className="login-modal-overlay">
       <div className="login-modal">
+        {onClose && (
+          <button type="button" className="modal-close-btn" onClick={onClose} aria-label="Close login dialog">
+            ×
+          </button>
+        )}
         <h1>SwiftBus</h1>
         <h2>{isRegistering ? "Create Account" : "Login"}</h2>
+        <p className="auth-helper-text">
+          {isRegistering
+            ? "Create your account, then verify your email to continue."
+            : "Log in to manage bookings and finish your seat selection."}
+        </p>
         
         <form onSubmit={handleSubmit}>
           {isRegistering && (
@@ -198,21 +218,13 @@ export default function LoginModal({ onLogin }) {
             />
           </div>
 
-          {error && <div className={`error-message ${isLoading ? "" : ""}`}>{error}</div>}
+          {error && <div className="error-message">{error}</div>}
           {infoMessage && <div className="error-message success">{infoMessage}</div>}
 
           <button type="submit" className="login-btn" disabled={isLoading}>
-            {isLoading ? "Loading..." : (isRegistering ? "Register" : "Login")}
+            {isLoading ? "Loading..." : (isRegistering ? "Create Account" : "Login")}
           </button>
         </form>
-
-        {error && error.toLowerCase().includes("verify") && (
-          <div style={{ marginTop: 12 }}>
-            <button className="login-btn" onClick={resendVerification} disabled={isLoading}>
-              Resend verification email
-            </button>
-          </div>
-        )}
 
         <div className="auth-toggle">
           {isRegistering ? (
@@ -223,6 +235,7 @@ export default function LoginModal({ onLogin }) {
                 onClick={() => {
                   setIsRegistering(false);
                   setError("");
+                  setInfoMessage("");
                   setPassword("");
                 }}
                 disabled={isLoading}
@@ -238,6 +251,7 @@ export default function LoginModal({ onLogin }) {
                 onClick={() => {
                   setIsRegistering(true);
                   setError("");
+                  setInfoMessage("");
                   setPassword("");
                 }}
                 disabled={isLoading}
@@ -247,6 +261,15 @@ export default function LoginModal({ onLogin }) {
             </>
           )}
         </div>
+
+        {!isRegistering && (
+          <div className="auth-toggle auth-toggle-secondary">
+            Need another verification email?{" "}
+            <button type="button" onClick={resendVerification} disabled={isLoading}>
+              Resend it
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

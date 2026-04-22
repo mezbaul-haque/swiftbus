@@ -28,7 +28,10 @@ export default function SearchHeader({
   updateSuggestionPosition,
   searchError,
   currentUser,
-  onLogout
+  onLogout,
+  onOpenLogin,
+  onOpenRegister,
+  onOpenBookings
 }) {
   const logoSrc = `${import.meta.env.BASE_URL}logo.svg`;
 
@@ -60,18 +63,29 @@ export default function SearchHeader({
             href="#"
             onClick={(e) => {
               e.preventDefault();
-              setView("bookings");
+              onOpenBookings();
             }}
           >
             My Bookings
           </a>
           <a href="#">Contact</a>
-          <div className="user-section">
-            <span className="username">{currentUser?.email || currentUser?.displayName || "User"}</span>
-            <button className="btn-logout" onClick={onLogout}>
-              Logout
-            </button>
-          </div>
+          {currentUser ? (
+            <div className="user-section">
+              <span className="username">{currentUser?.displayName || currentUser?.email || "User"}</span>
+              <button className="btn-logout" onClick={onLogout}>
+                Logout
+              </button>
+            </div>
+          ) : (
+            <div className="guest-actions">
+              <button type="button" className="btn-ghost-light" onClick={onOpenLogin}>
+                Login
+              </button>
+              <button type="button" className="btn-logout" onClick={onOpenRegister}>
+                Create Account
+              </button>
+            </div>
+          )}
         </div>
       </nav>
 
