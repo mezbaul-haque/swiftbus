@@ -1,5 +1,7 @@
 # SwiftBus
 
+A modern bus ticket booking interface built with React and Vite, featuring interactive seat selection and QR ticket generation.
+
 SwiftBus is a React + Vite bus ticket booking interface.
 
 ## Features
